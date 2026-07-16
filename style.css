@@ -24,7 +24,8 @@ video#bg-video {
   display: none;
 }
 
-canvas#rain {
+canvas#rain,
+canvas#ascii {
   position: fixed;
   top: 0;
   left: 0;
@@ -32,6 +33,14 @@ canvas#rain {
   height: 100%;
   z-index: 0;
   pointer-events: none;
+}
+
+canvas#ascii {
+  display: none;
+}
+
+canvas#ascii.active {
+  display: block;
 }
 
 .spotlight {
