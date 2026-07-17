@@ -18,7 +18,7 @@
   var videoOpacity = 50;
   var videoPlaying = true;
   var videoPlayPauseBtn = document.getElementById('video-playpause');
-  var boomerang = false;
+  var boomerang = true;
   var videoDirection = 1;
 
   // ---- Mouse ----
@@ -932,6 +932,8 @@
         videoPlayPauseBtn.classList.remove('playing');
       }
     }
+
+    video.loop = !boomerang;
 
     initWebGL();
     resize();
