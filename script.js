@@ -38,7 +38,7 @@
   var cellAspectRatio = 0.6;
   var charAspectRatio = 0.85;
   var charFillRatio = 1;
-  var tileOpacity = 0.55;
+  var tileOpacity = 0.45;
   var glyphOpacity = 0.95;
   var gamma = 2.0;
   var edgeLo = 0;
@@ -575,6 +575,7 @@
     if (showAscii) return;
     showAscii = true;
     resizeWebGLCanvas();
+    lastPresentedFrames = -1;
     drawWebGLFrame(true);
     canvasAscii.classList.add('active');
     startRenderLoop();
