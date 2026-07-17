@@ -687,9 +687,7 @@
   // =========================================================================
 
   function draw() {
-    if (!showAscii) {
-      drawBinaryRain();
-    }
+    drawBinaryRain();
 
     mouseX += (targetX - mouseX) * 0.15;
     mouseY += (targetY - mouseY) * 0.15;
