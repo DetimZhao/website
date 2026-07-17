@@ -605,6 +605,7 @@
   function activateAscii() {
     if (showAscii) return;
     showAscii = true;
+    ctx2d.clearRect(0, 0, canvasRain.width, canvasRain.height);
     resizeWebGLCanvas();
     lastPresentedFrames = -1;
     drawWebGLFrame(true);
@@ -687,7 +688,9 @@
   // =========================================================================
 
   function draw() {
-    drawBinaryRain();
+    if (!showAscii) {
+      drawBinaryRain();
+    }
 
     mouseX += (targetX - mouseX) * 0.15;
     mouseY += (targetY - mouseY) * 0.15;
