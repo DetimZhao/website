@@ -39,11 +39,11 @@
   var charAspectRatio = 0.85;
   var charFillRatio = 1;
   var tileOpacity = 0.45;
-  var glyphOpacity = 0.95;
+  var glyphOpacity = 0.75;
   var gamma = 2.0;
   var edgeLo = 0;
   var edgeHi = 1;
-  var blendStrength = 0.8;
+  var blendStrength = 0.6;
 
   var density = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYZXcvunxrj/ft\\|()1{}[]?_-+~<>i!lI;:\",^'.  ";
   var densityLen = density.length;
@@ -739,11 +739,23 @@
     videoPlaying = true;
     videoPlayPauseBtn.classList.add('playing');
     localStorage.setItem('video-playing', '1');
-    video.play().catch(function () {});
-    if (videoReady && webglReady) {
-      if (!showAscii) activateAscii();
-    } else if (!videoReady) {
+
+    if (!videoReady) {
       video.load();
+      return;
+    }
+
+    var promise = video.play();
+    if (promise !== undefined) {
+      promise.then(function () {
+        if (!videoPlaying || videoDisabled) return;
+        if (webglReady && !showAscii) activateAscii();
+      }).catch(function () {
+        if (!videoPlaying || videoDisabled) return;
+        if (webglReady && !showAscii) activateAscii();
+      });
+    } else {
+      if (webglReady && !showAscii) activateAscii();
     }
   }
 
