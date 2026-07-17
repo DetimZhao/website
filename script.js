@@ -38,12 +38,12 @@
   var cellAspectRatio = 0.6;
   var charAspectRatio = 0.85;
   var charFillRatio = 1;
-  var tileOpacity = 0.35;
-  var glyphOpacity = 0.85;
+  var tileOpacity = 0.55;
+  var glyphOpacity = 0.95;
   var gamma = 2.0;
   var edgeLo = 0;
   var edgeHi = 1;
-  var blendStrength = 0.7;
+  var blendStrength = 0.8;
 
   var density = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYZXcvunxrj/ft\\|()1{}[]?_-+~<>i!lI;:\",^'.  ";
   var densityLen = density.length;
@@ -856,10 +856,8 @@
 
     if (savedPlaying === '0') {
       videoPlaying = false;
-      videoPlayPauseBtn.classList.remove('playing');
     } else {
       videoPlaying = true;
-      videoPlayPauseBtn.classList.add('playing');
     }
 
     if (savedOpacity !== null) {
@@ -867,13 +865,19 @@
       videoOpacity = val;
       videoOpacitySlider.value = val;
       videoDisabled = (val === 0);
-      if (val > 0) {
-        canvasAscii.style.opacity = (val / 100).toFixed(2);
-        videoPlayPauseBtn.classList.add('visible');
-      }
-      if (val === 0) {
-        videoPlayPauseBtn.classList.remove('visible', 'playing');
-        video.pause();
+    }
+
+    if (videoDisabled) {
+      canvasAscii.style.opacity = '';
+      videoPlayPauseBtn.classList.remove('visible', 'playing');
+      video.pause();
+    } else {
+      canvasAscii.style.opacity = (videoOpacity / 100).toFixed(2);
+      videoPlayPauseBtn.classList.add('visible');
+      if (videoPlaying) {
+        videoPlayPauseBtn.classList.add('playing');
+      } else {
+        videoPlayPauseBtn.classList.remove('playing');
       }
     }
 
