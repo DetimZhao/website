@@ -15,9 +15,11 @@
   var showAscii = false;
   var videoDisabled = false;
   var videoOpacitySlider = document.getElementById('video-opacity');
-  var videoOpacity = 100;
+  var videoOpacity = 50;
   var videoPlaying = true;
   var videoPlayPauseBtn = document.getElementById('video-playpause');
+  var boomerang = false;
+  var videoDirection = 1;
 
   // ---- Mouse ----
   var targetX = -500;
@@ -39,7 +41,7 @@
   var charAspectRatio = 0.85;
   var charFillRatio = 1;
   var tileOpacity = 0.45;
-  var glyphOpacity = 0.75;
+  var glyphOpacity = 0.8;
   var gamma = 2.0;
   var edgeLo = 0;
   var edgeHi = 1;
@@ -544,6 +546,35 @@
     }
   }
 
+  function startReverseLoop() {
+    renderToken++;
+    var token = renderToken;
+
+    (function tick() {
+      if (token !== renderToken || !showAscii) return;
+      if (videoDirection !== -1) return;
+
+      if (video.seeking) {
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
+      drawWebGLFrame(true);
+      var t = Math.max(0, video.currentTime - 1 / 30);
+
+      if (t <= 0.01) {
+        videoDirection = 1;
+        video.currentTime = 0;
+        video.play();
+        if (showAscii) startRenderLoop();
+        return;
+      }
+
+      video.currentTime = t;
+      rafId = requestAnimationFrame(tick);
+    })();
+  }
+
   function drawWebGLFrame(shouldUpload) {
     if (!webglReady || !gl) return;
 
@@ -641,7 +672,7 @@
       var spotlightRadius = 300;
       var glow = dist < spotlightRadius ? 1 - dist / spotlightRadius : 0;
       glow = glow * glow;
-      var alpha = 0.15 + glow * 0.20;
+      var alpha = 0.35 + glow * 0.20;
 
       ctx2d.fillStyle = 'rgba(235, 235, 235, ' + alpha.toFixed(3) + ')';
       ctx2d.fillText(ch, gx, gy);
@@ -737,6 +768,7 @@
 
   function playVideoFn() {
     videoPlaying = true;
+    videoDirection = 1;
     videoPlayPauseBtn.classList.add('playing');
     localStorage.setItem('video-playing', '1');
 
@@ -857,6 +889,12 @@
 
   video.addEventListener('error', function () {
     videoReady = false;
+  });
+
+  video.addEventListener('ended', function () {
+    if (!boomerang) return;
+    videoDirection = -1;
+    startReverseLoop();
   });
 
   // =========================================================================
