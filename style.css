@@ -263,7 +263,7 @@ footer p {
   justify-content: center;
   gap: 0.75rem;
   margin-top: 1.25rem;
-  opacity: 0.35;
+  opacity: 0.6;
   transition: opacity 0.3s ease;
 }
 
@@ -274,7 +274,7 @@ footer p {
 .video-controls-label {
   font-size: 0.75rem;
   font-weight: 300;
-  color: rgba(235, 235, 235, 0.6);
+  color: rgba(235, 235, 235, 0.75);
   letter-spacing: 0.02em;
   user-select: none;
 }
@@ -284,7 +284,7 @@ footer p {
   appearance: none;
   width: 80px;
   height: 2px;
-  background: rgba(235, 235, 235, 0.2);
+  background: rgba(235, 235, 235, 0.4);
   border-radius: 1px;
   cursor: pointer;
   outline: none;
@@ -292,7 +292,7 @@ footer p {
 
 .video-opacity-slider::-webkit-slider-runnable-track {
   height: 2px;
-  background: rgba(235, 235, 235, 0.2);
+  background: rgba(235, 235, 235, 0.4);
   border-radius: 1px;
 }
 
@@ -302,7 +302,7 @@ footer p {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(235, 235, 235, 0.7);
+  background: rgba(235, 235, 235, 0.85);
   margin-top: -4px;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -317,7 +317,7 @@ footer p {
   height: 10px;
   border: none;
   border-radius: 50%;
-  background: rgba(235, 235, 235, 0.7);
+  background: rgba(235, 235, 235, 0.85);
   cursor: pointer;
 }
 
