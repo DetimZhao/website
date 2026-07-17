@@ -13,8 +13,9 @@
   var webglReady = false;
   var videoReady = false;
   var showAscii = false;
-  var videoToggleBtn = document.getElementById('video-toggle');
   var videoDisabled = false;
+  var videoOpacitySlider = document.getElementById('video-opacity');
+  var videoOpacity = 100;
 
   // ---- Mouse ----
   var targetX = -500;
@@ -637,7 +638,7 @@
       var spotlightRadius = 300;
       var glow = dist < spotlightRadius ? 1 - dist / spotlightRadius : 0;
       glow = glow * glow;
-      var alpha = 0.12 + glow * 0.16;
+      var alpha = 0.15 + glow * 0.20;
 
       ctx2d.fillStyle = 'rgba(235, 235, 235, ' + alpha.toFixed(3) + ')';
       ctx2d.fillText(ch, gx, gy);
@@ -719,29 +720,34 @@
   }
 
   // =========================================================================
-  // VIDEO TOGGLE
+  // VIDEO OPACITY SLIDER
   // =========================================================================
 
-  function toggleVideo() {
-    videoDisabled = !videoDisabled;
-    localStorage.setItem('ascii-video-disabled', videoDisabled ? '1' : '0');
+  function applyVideoOpacity(val) {
+    videoOpacity = val;
+    videoOpacitySlider.value = val;
+    localStorage.setItem('video-opacity', val);
 
-    if (videoDisabled) {
+    if (val === 0) {
+      videoDisabled = true;
       showAscii = false;
       canvasAscii.classList.remove('active');
+      canvasAscii.style.opacity = '';
       video.pause();
-      videoToggleBtn.textContent = '▶';
-      videoToggleBtn.title = 'Enable video';
     } else {
-      videoToggleBtn.textContent = '■';
-      videoToggleBtn.title = 'Disable video';
+      videoDisabled = false;
+      canvasAscii.style.opacity = (val / 100).toFixed(2);
       if (videoReady && webglReady) {
-        activateAscii();
+        if (!showAscii) activateAscii();
       } else if (!videoReady) {
         video.load();
         video.play().catch(function () {});
       }
     }
+  }
+
+  function onVideoOpacityChange() {
+    applyVideoOpacity(parseInt(videoOpacitySlider.value, 10));
   }
 
   // =========================================================================
@@ -796,11 +802,18 @@
   // =========================================================================
 
   function boot() {
-    if (localStorage.getItem('ascii-video-disabled') === '1') {
-      videoDisabled = true;
-      videoToggleBtn.textContent = '▶';
-      videoToggleBtn.title = 'Enable video';
-      video.pause();
+    var savedOpacity = localStorage.getItem('video-opacity');
+    if (savedOpacity !== null) {
+      var val = parseInt(savedOpacity, 10);
+      videoOpacity = val;
+      videoOpacitySlider.value = val;
+      videoDisabled = (val === 0);
+      if (val > 0) {
+        canvasAscii.style.opacity = (val / 100).toFixed(2);
+      }
+      if (videoDisabled) {
+        video.pause();
+      }
     }
 
     initWebGL();
@@ -829,7 +842,7 @@
   window.addEventListener('resize', resize);
   window.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseleave', onMouseLeave);
-  videoToggleBtn.addEventListener('click', toggleVideo);
+  videoOpacitySlider.addEventListener('input', onVideoOpacityChange);
 
   boot();
 })();
