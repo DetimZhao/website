@@ -13,6 +13,8 @@
   var webglReady = false;
   var videoReady = false;
   var showAscii = false;
+  var videoToggleBtn = document.getElementById('video-toggle');
+  var videoDisabled = false;
 
   // ---- Mouse ----
   var targetX = -500;
@@ -25,6 +27,8 @@
   var speeds = [];
   var rainCols = 0;
   var fontSize = 14;
+  var rainChars = [];
+  var rainCharTimers = [];
 
   // ---- Config ----
   var cellSizePx = 10;
@@ -96,8 +100,13 @@
   var taglinePaused = false;
 
   // ---- Video source ----
-  // video.src = 'https://general-intuition.pages.dev/media/video_racing.mp4';
-  // video.src = './videoplayback-00.01.23.556-00.01.30.047.mp4';
+  var urlParams = new URLSearchParams(window.location.search);
+  var customVideo = urlParams.get('video');
+  if (customVideo) {
+    video.src = customVideo;
+  } else {
+    video.src = 'https://general-intuition.pages.dev/media/video_racing.mp4';
+  }
   video.load();
 
   // =========================================================================
@@ -119,7 +128,7 @@
       }, false);
       canvasAscii.addEventListener('webglcontextrestored', function () {
         initWebGLPipeline();
-        if (videoReady) activateAscii();
+        if (videoReady && !videoDisabled) activateAscii();
       }, false);
 
       initWebGLPipeline();
@@ -582,6 +591,10 @@
       drops.push(Math.floor(Math.random() * -canvasRain.height / fontSize));
       speeds.push(0.4 + Math.random() * 1.2);
     }
+    while (rainChars.length < rainCols) {
+      rainChars.push(density.charAt(Math.floor(Math.random() * densityLen)));
+      rainCharTimers.push(Math.floor(Math.random() * 60));
+    }
   }
 
   function drawBinaryRain() {
@@ -600,16 +613,31 @@
         drops[i] = Math.floor(Math.random() * -canvasRain.height / fontSize);
         speeds[i] = 0.4 + Math.random() * 1.2;
       }
-      var ch = Math.random() > 0.5 ? '1' : '0';
+      if (rainChars[i] === undefined) {
+        rainChars[i] = density.charAt(Math.floor(Math.random() * densityLen));
+        rainCharTimers[i] = 30 + Math.floor(Math.random() * 90);
+      }
+
+      rainCharTimers[i]--;
+      if (rainCharTimers[i] <= 0) {
+        rainChars[i] = density.charAt(Math.floor(Math.random() * densityLen));
+        rainCharTimers[i] = 30 + Math.floor(Math.random() * 90);
+      }
+
+      var ch = rainChars[i];
       var gx = i * fontSize;
       var gy = drops[i] * fontSize;
 
       if (gy > canvasRain.height && Math.random() > 0.975) {
         drops[i] = 0;
+        rainChars[i] = density.charAt(Math.floor(Math.random() * densityLen));
       }
 
       var dist = Math.hypot(gx - mouseX, gy - mouseY);
-      var alpha = dist < 120 ? 0.18 : 0.09;
+      var spotlightRadius = 300;
+      var glow = dist < spotlightRadius ? 1 - dist / spotlightRadius : 0;
+      glow = glow * glow;
+      var alpha = 0.12 + glow * 0.16;
 
       ctx2d.fillStyle = 'rgba(235, 235, 235, ' + alpha.toFixed(3) + ')';
       ctx2d.fillText(ch, gx, gy);
@@ -691,6 +719,32 @@
   }
 
   // =========================================================================
+  // VIDEO TOGGLE
+  // =========================================================================
+
+  function toggleVideo() {
+    videoDisabled = !videoDisabled;
+    localStorage.setItem('ascii-video-disabled', videoDisabled ? '1' : '0');
+
+    if (videoDisabled) {
+      showAscii = false;
+      canvasAscii.classList.remove('active');
+      video.pause();
+      videoToggleBtn.textContent = '▶';
+      videoToggleBtn.title = 'Enable video';
+    } else {
+      videoToggleBtn.textContent = '■';
+      videoToggleBtn.title = 'Disable video';
+      if (videoReady && webglReady) {
+        activateAscii();
+      } else if (!videoReady) {
+        video.load();
+        video.play().catch(function () {});
+      }
+    }
+  }
+
+  // =========================================================================
   // EVENTS
   // =========================================================================
 
@@ -730,7 +784,7 @@
     videoH = video.videoHeight;
     videoReady = true;
     video.play().catch(function () {});
-    if (webglReady) activateAscii();
+    if (webglReady && !videoDisabled) activateAscii();
   });
 
   video.addEventListener('error', function () {
@@ -742,6 +796,13 @@
   // =========================================================================
 
   function boot() {
+    if (localStorage.getItem('ascii-video-disabled') === '1') {
+      videoDisabled = true;
+      videoToggleBtn.textContent = '▶';
+      videoToggleBtn.title = 'Enable video';
+      video.pause();
+    }
+
     initWebGL();
     resize();
     setInterval(draw, 42);
@@ -750,12 +811,11 @@
     setInterval(rotateStatus, 10000);
     setTimeout(fadeIn, 200);
 
-    // If video already has data (cached), check immediately
     if (video.readyState >= 2) {
       videoW = video.videoWidth;
       videoH = video.videoHeight;
       videoReady = true;
-      if (webglReady) activateAscii();
+      if (webglReady && !videoDisabled) activateAscii();
     }
   }
 
@@ -769,6 +829,7 @@
   window.addEventListener('resize', resize);
   window.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseleave', onMouseLeave);
+  videoToggleBtn.addEventListener('click', toggleVideo);
 
   boot();
 })();
