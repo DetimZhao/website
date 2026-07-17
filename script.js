@@ -3,6 +3,10 @@
   var canvasAscii = document.getElementById('ascii');
   var video = document.getElementById('bg-video');
   var spotlight = document.querySelector('.spotlight');
+  var taglineEl = document.getElementById('tagline');
+  var bioPanel = document.getElementById('bio-panel');
+  var statusText = document.getElementById('status-text');
+  var statusLine = document.getElementById('status-line');
 
   var ctx2d = canvasRain.getContext('2d');
   var gl = null;
@@ -72,8 +76,27 @@
   var videoW = 0;
   var videoH = 0;
 
+  // ---- Content ----
+  var taglines = [
+    "I'm just a guy",
+    "...who builds things",
+    "...thinks hard about stuff",
+    "...somewhere on the internet"
+  ];
+
+  var statuses = [
+    "Currently: building things",
+    "Based in: AZ, USA",
+    "Say hi: detimzhao[at]gmail.com"
+  ];
+
+  var taglineIdx = 0;
+  var statusIdx = 0;
+  var bioOpen = false;
+  var taglinePaused = false;
+
   // ---- Video source ----
-  video.src = 'https://general-intuition.pages.dev/media/video_racing.mp4';
+  // video.src = 'https://general-intuition.pages.dev/media/video_racing.mp4';
   // video.src = './videoplayback-00.01.23.556-00.01.30.047.mp4';
   video.load();
 
@@ -580,11 +603,13 @@
       var ch = Math.random() > 0.5 ? '1' : '0';
       var gx = i * fontSize;
       var gy = drops[i] * fontSize;
-      var alpha = 0.12;
 
       if (gy > canvasRain.height && Math.random() > 0.975) {
         drops[i] = 0;
       }
+
+      var dist = Math.hypot(gx - mouseX, gy - mouseY);
+      var alpha = dist < 120 ? 0.18 : 0.09;
 
       ctx2d.fillStyle = 'rgba(235, 235, 235, ' + alpha.toFixed(3) + ')';
       ctx2d.fillText(ch, gx, gy);
@@ -614,6 +639,58 @@
   }
 
   // =========================================================================
+  // TAGLINE ROTATION
+  // =========================================================================
+
+  function rotateTagline() {
+    if (bioOpen || taglinePaused) return;
+    taglineEl.style.opacity = '0';
+    setTimeout(function () {
+      taglineIdx = (taglineIdx + 1) % taglines.length;
+      taglineEl.textContent = taglines[taglineIdx];
+      taglineEl.style.opacity = '1';
+    }, 400);
+  }
+
+  // =========================================================================
+  // BIO TOGGLE
+  // =========================================================================
+
+  function openBio() {
+    bioOpen = true;
+    bioPanel.classList.add('open');
+    taglineEl.classList.add('bio-open');
+    taglinePaused = true;
+    taglineEl.style.opacity = '1';
+  }
+
+  function closeBio() {
+    bioOpen = false;
+    bioPanel.classList.remove('open');
+    taglineEl.classList.remove('bio-open');
+    taglinePaused = false;
+  }
+
+  function toggleBio(e) {
+    e.stopPropagation();
+    if (bioOpen) { closeBio(); }
+    else { openBio(); }
+  }
+
+  // =========================================================================
+  // STATUS ROTATION
+  // =========================================================================
+
+  function rotateStatus() {
+    statusText.classList.add('fading');
+    setTimeout(function () {
+      statusIdx = (statusIdx + 1) % statuses.length;
+      statusText.textContent = statuses[statusIdx];
+      statusText.classList.remove('fading');
+    }, 600);
+  }
+
+  // =========================================================================
   // EVENTS
   // =========================================================================
 
@@ -633,7 +710,7 @@
   }
 
   function fadeIn() {
-    var els = document.querySelectorAll('.hero, .socials, footer');
+    var els = document.querySelectorAll('.hero, .socials, footer, .status-line');
     for (var i = 0; i < els.length; i++) {
       els[i].classList.add('visible');
     }
@@ -669,6 +746,8 @@
     resize();
     setInterval(draw, 42);
     setInterval(updateSpotlight, 50);
+    setInterval(rotateTagline, 4500);
+    setInterval(rotateStatus, 10000);
     setTimeout(fadeIn, 200);
 
     // If video already has data (cached), check immediately
@@ -679,6 +758,13 @@
       if (webglReady) activateAscii();
     }
   }
+
+  taglineEl.addEventListener('click', toggleBio);
+  document.addEventListener('click', function (e) {
+    if (bioOpen && !taglineEl.contains(e.target) && !bioPanel.contains(e.target)) {
+      closeBio();
+    }
+  });
 
   window.addEventListener('resize', resize);
   window.addEventListener('mousemove', onMouseMove);
