@@ -16,6 +16,8 @@
   var videoDisabled = false;
   var videoOpacitySlider = document.getElementById('video-opacity');
   var videoOpacity = 100;
+  var videoPlaying = true;
+  var videoPlayPauseBtn = document.getElementById('video-playpause');
 
   // ---- Mouse ----
   var targetX = -500;
@@ -106,7 +108,7 @@
   if (customVideo) {
     video.src = customVideo;
   } else {
-    video.src = 'https://general-intuition.pages.dev/media/video_racing.mp4';
+    video.src = './IMG_0783_720p.mp4';
   }
   video.load();
 
@@ -129,7 +131,7 @@
       }, false);
       canvasAscii.addEventListener('webglcontextrestored', function () {
         initWebGLPipeline();
-        if (videoReady && !videoDisabled) activateAscii();
+        if (videoReady && videoPlaying && !videoDisabled) activateAscii();
       }, false);
 
       initWebGLPipeline();
@@ -153,7 +155,7 @@
     setupWebGLUniforms();
     webglReady = true;
 
-    if (videoReady) activateAscii();
+    if (videoReady && videoPlaying && !videoDisabled) activateAscii();
   }
 
   // ---- Shaders ----
@@ -720,6 +722,48 @@
   }
 
   // =========================================================================
+  // PLAY / PAUSE
+  // =========================================================================
+
+  function pauseVideo() {
+    videoPlaying = false;
+    video.pause();
+    showAscii = false;
+    canvasAscii.classList.remove('active');
+    videoPlayPauseBtn.classList.remove('playing');
+    localStorage.setItem('video-playing', '0');
+  }
+
+  function playVideoFn() {
+    videoPlaying = true;
+    videoPlayPauseBtn.classList.add('playing');
+    localStorage.setItem('video-playing', '1');
+    if (videoReady && webglReady) {
+      if (!showAscii) activateAscii();
+    } else if (!videoReady) {
+      video.load();
+      video.play().catch(function () {});
+    }
+  }
+
+  function togglePlayPause() {
+    if (videoDisabled) return;
+    if (videoPlaying) {
+      pauseVideo();
+    } else {
+      playVideoFn();
+    }
+  }
+
+  function updatePlayPauseVisibility() {
+    if (videoDisabled) {
+      videoPlayPauseBtn.classList.remove('visible');
+    } else {
+      videoPlayPauseBtn.classList.add('visible');
+    }
+  }
+
+  // =========================================================================
   // VIDEO OPACITY SLIDER
   // =========================================================================
 
@@ -728,20 +772,23 @@
     videoOpacitySlider.value = val;
     localStorage.setItem('video-opacity', val);
 
+    var wasDisabled = videoDisabled;
+    videoDisabled = (val === 0);
+
     if (val === 0) {
-      videoDisabled = true;
+      video.pause();
       showAscii = false;
       canvasAscii.classList.remove('active');
       canvasAscii.style.opacity = '';
-      video.pause();
+      videoPlayPauseBtn.classList.remove('visible', 'playing');
     } else {
-      videoDisabled = false;
       canvasAscii.style.opacity = (val / 100).toFixed(2);
-      if (videoReady && webglReady) {
-        if (!showAscii) activateAscii();
-      } else if (!videoReady) {
-        video.load();
-        video.play().catch(function () {});
+      updatePlayPauseVisibility();
+
+      if (wasDisabled) {
+        playVideoFn();
+      } else if (videoPlaying && videoReady && webglReady && !showAscii) {
+        activateAscii();
       }
     }
   }
@@ -789,8 +836,10 @@
     videoW = video.videoWidth;
     videoH = video.videoHeight;
     videoReady = true;
-    video.play().catch(function () {});
-    if (webglReady && !videoDisabled) activateAscii();
+    if (videoPlaying && !videoDisabled) {
+      video.play().catch(function () {});
+      if (webglReady) activateAscii();
+    }
   });
 
   video.addEventListener('error', function () {
@@ -803,6 +852,16 @@
 
   function boot() {
     var savedOpacity = localStorage.getItem('video-opacity');
+    var savedPlaying = localStorage.getItem('video-playing');
+
+    if (savedPlaying === '0') {
+      videoPlaying = false;
+      videoPlayPauseBtn.classList.remove('playing');
+    } else {
+      videoPlaying = true;
+      videoPlayPauseBtn.classList.add('playing');
+    }
+
     if (savedOpacity !== null) {
       var val = parseInt(savedOpacity, 10);
       videoOpacity = val;
@@ -810,8 +869,10 @@
       videoDisabled = (val === 0);
       if (val > 0) {
         canvasAscii.style.opacity = (val / 100).toFixed(2);
+        videoPlayPauseBtn.classList.add('visible');
       }
-      if (videoDisabled) {
+      if (val === 0) {
+        videoPlayPauseBtn.classList.remove('visible', 'playing');
         video.pause();
       }
     }
@@ -828,7 +889,7 @@
       videoW = video.videoWidth;
       videoH = video.videoHeight;
       videoReady = true;
-      if (webglReady && !videoDisabled) activateAscii();
+      if (webglReady && !videoDisabled && videoPlaying) activateAscii();
     }
   }
 
@@ -843,6 +904,13 @@
   window.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseleave', onMouseLeave);
   videoOpacitySlider.addEventListener('input', onVideoOpacityChange);
+  videoPlayPauseBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    togglePlayPause();
+  });
+  canvasAscii.addEventListener('click', function (e) {
+    togglePlayPause();
+  });
 
   boot();
 })();
