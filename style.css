@@ -263,7 +263,7 @@ footer p {
   justify-content: center;
   gap: 0.75rem;
   margin-top: 1.25rem;
-  opacity: 0.6;
+  opacity: 0.75;
   transition: opacity 0.3s ease;
 }
 
@@ -273,9 +273,9 @@ footer p {
 
 .video-controls-label {
   font-size: 0.75rem;
-  font-weight: 300;
-  color: rgba(235, 235, 235, 0.75);
-  letter-spacing: 0.02em;
+  font-weight: 400;
+  color: rgba(235, 235, 235, 0.85);
+  letter-spacing: 0.03em;
   user-select: none;
 }
 
@@ -283,41 +283,42 @@ footer p {
   -webkit-appearance: none;
   appearance: none;
   width: 80px;
-  height: 2px;
-  background: rgba(235, 235, 235, 0.4);
-  border-radius: 1px;
+  height: 3px;
+  background: rgba(235, 235, 235, 0.45);
+  border-radius: 2px;
   cursor: pointer;
   outline: none;
 }
 
 .video-opacity-slider::-webkit-slider-runnable-track {
-  height: 2px;
-  background: rgba(235, 235, 235, 0.4);
-  border-radius: 1px;
+  height: 3px;
+  background: rgba(235, 235, 235, 0.45);
+  border-radius: 2px;
 }
 
 .video-opacity-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  background: rgba(235, 235, 235, 0.85);
-  margin-top: -4px;
+  background: rgba(235, 235, 235, 0.9);
+  margin-top: -5px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .video-opacity-slider::-webkit-slider-thumb:hover {
-  background: rgba(235, 235, 235, 0.95);
+  background: rgba(235, 235, 235, 1);
+  box-shadow: 0 0 10px rgba(235, 235, 235, 0.3);
 }
 
 .video-opacity-slider::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border: none;
   border-radius: 50%;
-  background: rgba(235, 235, 235, 0.85);
+  background: rgba(235, 235, 235, 0.9);
   cursor: pointer;
 }
 

@@ -738,11 +738,11 @@
     videoPlaying = true;
     videoPlayPauseBtn.classList.add('playing');
     localStorage.setItem('video-playing', '1');
+    video.play().catch(function () {});
     if (videoReady && webglReady) {
       if (!showAscii) activateAscii();
     } else if (!videoReady) {
       video.load();
-      video.play().catch(function () {});
     }
   }
 
