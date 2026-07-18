@@ -20,6 +20,7 @@
   var videoPlayPauseBtn = document.getElementById('video-playpause');
   var boomerang = true;
   var videoDirection = 1;
+  var reverseStep = 1 / 15;
 
   // ---- Mouse ----
   var targetX = -500;
@@ -550,17 +551,12 @@
     renderToken++;
     var token = renderToken;
 
-    (function tick() {
+    function tick() {
       if (token !== renderToken || !showAscii) return;
       if (videoDirection !== -1) return;
 
-      if (video.seeking) {
-        rafId = requestAnimationFrame(tick);
-        return;
-      }
-
       drawWebGLFrame(true);
-      var t = Math.max(0, video.currentTime - 1 / 30);
+      var t = Math.max(0, video.currentTime - reverseStep);
 
       if (t <= 0.01) {
         videoDirection = 1;
@@ -571,8 +567,18 @@
       }
 
       video.currentTime = t;
+      if (typeof video.requestVideoFrameCallback === 'function') {
+        video.requestVideoFrameCallback(tick);
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+
+    if (typeof video.requestVideoFrameCallback === 'function') {
+      video.requestVideoFrameCallback(tick);
+    } else {
       rafId = requestAnimationFrame(tick);
-    })();
+    }
   }
 
   function drawWebGLFrame(shouldUpload) {
@@ -937,7 +943,7 @@
 
     initWebGL();
     resize();
-    setInterval(draw, 42);
+    setInterval(draw, 60);
     setInterval(updateSpotlight, 50);
     setInterval(rotateTagline, 4500);
     setInterval(rotateStatus, 10000);
