@@ -117,6 +117,7 @@
   videoFwd.load();
 
   if (boomerang && videoRev) {
+    console.log('boomerang: setting rev src, loading');
     videoRev.src = './IMG_0783_720p_rev.mp4';
     videoRev.load();
   }
@@ -555,13 +556,17 @@
 
   function switchVideo(newVideo) {
     if (!newVideo) return;
+    console.log('boomerang: switchVideo id=' + newVideo.id + ' readyState=' + newVideo.readyState + ' showAscii=' + showAscii + ' webglReady=' + webglReady);
     video = newVideo;
     lastPresentedFrames = -1;
     if (newVideo.readyState >= 1) {
       newVideo.currentTime = 0;
     }
     newVideo.play().catch(function () {});
-    if (showAscii && webglReady) startRenderLoop();
+    if (showAscii && webglReady) {
+      console.log('boomerang: calling startRenderLoop');
+      startRenderLoop();
+    }
   }
 
   function drawWebGLFrame(shouldUpload) {
@@ -881,7 +886,9 @@
   });
 
   videoFwd.addEventListener('ended', function () {
+    console.log('boomerang: fwd ended, boomerang=' + boomerang + ' videoRev=' + !!videoRev + ' showAscii=' + showAscii);
     if (!boomerang || !videoRev) return;
+    console.log('boomerang: switching to rev');
     switchVideo(videoRev);
   });
 
@@ -891,6 +898,7 @@
     });
 
     videoRev.addEventListener('ended', function () {
+      console.log('boomerang: rev ended, switching to fwd');
       switchVideo(videoFwd);
     });
   }
