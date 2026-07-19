@@ -556,17 +556,9 @@
   function switchVideo(newVideo) {
     video = newVideo;
     lastPresentedFrames = -1;
-    if (video.readyState >= 1) {
-      video.currentTime = 0;
-    }
-    var promise = video.play();
-    if (promise !== undefined) {
-      promise.then(function () {
-        if (showAscii && webglReady) startRenderLoop();
-      }).catch(function () {});
-    } else {
-      if (showAscii && webglReady) startRenderLoop();
-    }
+    video.currentTime = 0;
+    video.play().catch(function () {});
+    if (showAscii && webglReady) startRenderLoop();
   }
 
   function drawWebGLFrame(shouldUpload) {
