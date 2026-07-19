@@ -20,7 +20,7 @@
   var videoOpacity = 50;
   var videoPlaying = true;
   var videoPlayPauseBtn = document.getElementById('video-playpause');
-  var boomerang = false;
+  var boomerang = true;
 
   // ---- Mouse ----
   var targetX = -500;
@@ -83,6 +83,11 @@
   var glowRadiiPx = new Float32Array(MAX_GLOW_SHADER);
   var glowStarts = new Float32Array(MAX_GLOW_SHADER);
   var lastPresentedFrames = -1;
+  var videoFrameReady = true;
+  var videoFrameDirty = false;
+  var videoTextureAllocated = false;
+  var lastVideoTime = 0;
+  var vfcHandle = 0;
   var videoW = 0;
   var videoH = 0;
 
@@ -108,6 +113,8 @@
   // ---- Video source ----
   var urlParams = new URLSearchParams(window.location.search);
   var customVideo = urlParams.get('video');
+  var debugPerf = urlParams.get('debug') === '1';
+  var lastFrameTime = 0;
   if (customVideo) {
     videoFwd.src = customVideo;
     boomerang = false;
@@ -500,9 +507,16 @@
     if (!locs['uGlowCount']) return;
     var nowSec = performance.now() / 1000;
 
-    glowPoints = glowPoints.filter(function (p) {
-      return nowSec - p.tSec <= glowDuration + 0.25;
-    });
+    var writeIdx = 0;
+    var maxAge = glowDuration + 0.25;
+    for (var i = 0; i < glowPoints.length; i++) {
+      var p = glowPoints[i];
+      if (nowSec - p.tSec <= maxAge) {
+        if (writeIdx !== i) glowPoints[writeIdx] = p;
+        writeIdx++;
+      }
+    }
+    glowPoints.length = writeIdx;
 
     var count = Math.min(glowPoints.length, MAX_GLOW_SHADER);
     for (var i = 0; i < count; i++) {
@@ -526,53 +540,87 @@
   // ---- Render ----
 
   var vfcRequested = false;
-  var rafId = null;
+  var rafId = 0;
   var renderToken = 0;
+  var currentVfcVideo = null;
 
   function startRenderLoop() {
-    renderToken++;
     var token = renderToken;
-
+    currentVfcVideo = video;
+    if (!showAscii) return;
     if (typeof video.requestVideoFrameCallback === 'function') {
-      (function loopVFC() {
+      currentVfcVideo.requestVideoFrameCallback(function callback(now, metadata) {
         if (token !== renderToken || !showAscii) return;
-        video.requestVideoFrameCallback(function (now, metadata) {
-          if (token !== renderToken || !showAscii) return;
-          var presented = metadata && typeof metadata.presentedFrames === 'number' ? metadata.presentedFrames : -1;
-          var isNew = presented !== lastPresentedFrames;
-          lastPresentedFrames = presented;
-          drawWebGLFrame(isNew);
-          loopVFC();
-        });
-      })();
+        var presented = metadata && typeof metadata.presentedFrames === 'number' ? metadata.presentedFrames : -1;
+        var isNew = presented !== lastPresentedFrames;
+        lastPresentedFrames = presented;
+        if (isNew) {
+          videoFrameDirty = true;
+          if (!videoFrameReady && presented > 0 && currentVfcVideo.videoWidth > 0) {
+            videoFrameReady = true;
+            if (debugPerf) console.log('boomerang: first valid frame from ' + currentVfcVideo.id + ' presentedFrames=' + presented);
+          }
+        }
+        if (debugPerf) {
+          var nowMs = performance.now();
+          if (lastFrameTime > 0) {
+            var dt = nowMs - lastFrameTime;
+            if (dt > 50) console.log('perf: VFC gap ' + dt.toFixed(1) + 'ms (was idle)');
+          }
+          lastFrameTime = nowMs;
+        }
+        if (token === renderToken && showAscii) {
+          currentVfcVideo.requestVideoFrameCallback(callback);
+        }
+      });
     } else {
-      (function loopRAF() {
-        if (token !== renderToken || !showAscii) return;
-        drawWebGLFrame(true);
-        rafId = requestAnimationFrame(loopRAF);
-      })();
+      if (video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime;
+        videoFrameDirty = true;
+      }
     }
+  }
+
+  function renderLoopRaf() {
+    rafId = requestAnimationFrame(renderLoopRaf);
+    if (!showAscii || !webglReady || !gl) return;
+    pushGlowDynamics();
+    var dirty = videoFrameDirty;
+    videoFrameDirty = false;
+    drawWebGLFrame(dirty);
   }
 
   function switchVideo(newVideo) {
     if (!newVideo) return;
+    var oldVideo = video;
+    renderToken++;
+    var switchStart = debugPerf ? performance.now() : 0;
     console.log('boomerang: switchVideo id=' + newVideo.id + ' readyState=' + newVideo.readyState + ' showAscii=' + showAscii + ' webglReady=' + webglReady);
     video = newVideo;
+    videoFrameReady = false;
+    videoFrameDirty = false;
+    videoTextureAllocated = false;
     lastPresentedFrames = -1;
-    if (newVideo.readyState >= 1) {
-      newVideo.currentTime = 0;
-    }
+    lastFrameTime = 0;
+    lastVideoTime = 0;
     newVideo.play().catch(function () {});
+    if (oldVideo && oldVideo !== newVideo && oldVideo.readyState >= 1) {
+      oldVideo.currentTime = 0;
+    }
     if (showAscii && webglReady) {
       console.log('boomerang: calling startRenderLoop');
       startRenderLoop();
+    }
+    if (debugPerf) {
+      var elapsed = (performance.now() - switchStart).toFixed(1);
+      console.log('boomerang: switchVideo completed in ' + elapsed + 'ms');
     }
   }
 
   function drawWebGLFrame(shouldUpload) {
     if (!webglReady || !gl) return;
 
-    if (shouldUpload) {
+    if (shouldUpload && videoFrameReady) {
       var vw = video.videoWidth || 0;
       var vh = video.videoHeight || 0;
       if (vw > 0 && vh > 0) {
@@ -580,8 +628,15 @@
         gl.bindTexture(gl.TEXTURE_2D, videoTex);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         try {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-        } catch (e) {}
+          if (!videoTextureAllocated) {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+            videoTextureAllocated = true;
+          } else {
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, video);
+          }
+        } catch (e) {
+          videoTextureAllocated = false;
+        }
         if (vw !== videoW || vh !== videoH) {
           videoW = vw;
           videoH = vh;
@@ -591,7 +646,6 @@
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, atlasTex);
-    pushGlowDynamics();
     gl.useProgram(prog);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
@@ -602,7 +656,7 @@
     ctx2d.clearRect(0, 0, canvasRain.width, canvasRain.height);
     resizeWebGLCanvas();
     lastPresentedFrames = -1;
-    drawWebGLFrame(true);
+    videoFrameDirty = true;
     canvasAscii.classList.add('active');
     startRenderLoop();
   }
@@ -942,6 +996,7 @@
 
     initWebGL();
     resize();
+    renderLoopRaf();
     setInterval(draw, 60);
     setInterval(updateSpotlight, 50);
     setInterval(rotateTagline, 4500);

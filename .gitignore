@@ -51,3 +51,5 @@ Temporary Items
 .ionide
 
 ### Project Specific ###
+# Video encoding backups
+/IMG_0783_720p_*.mp4

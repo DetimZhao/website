@@ -8,14 +8,16 @@
   <meta property="og:title" content="Detim Zhao">
   <meta property="og:description" content="I'm just a guy">
   <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>D</text></svg>">
+  <link rel="preload" as="video" href="IMG_0783_720p_rev.mp4" type="video/mp4">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <video id="bg-video" muted></video>
-  <video id="bg-video-rev" muted></video>
+  <video id="bg-video" muted preload="auto" playsinline></video>
+  <video id="bg-video-rev" muted preload="auto" playsinline></video>
   <canvas id="rain"></canvas>
   <canvas id="ascii"></canvas>
   <div class="spotlight"></div>
