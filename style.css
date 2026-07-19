@@ -20,7 +20,8 @@ body {
   overflow-x: hidden;
 }
 
-video#bg-video {
+video#bg-video,
+video#bg-video-rev {
   display: none;
 }
 
