@@ -909,6 +909,48 @@
     spotlight.classList.remove('active');
   }
 
+  // ── Mobile tap ripple ──
+
+  var rippleContainer = document.getElementById('ripple-container');
+
+  function createRipple(x, y) {
+    var ring = document.createElement('div');
+    ring.className = 'ripple-ring';
+    ring.style.left = x + 'px';
+    ring.style.top = y + 'px';
+    rippleContainer.appendChild(ring);
+
+    ring.addEventListener('animationend', function () {
+      if (ring.parentNode) ring.parentNode.removeChild(ring);
+    });
+  }
+
+  function onTouchStart(e) {
+    var touch = e.touches[0];
+    if (!touch) return;
+    targetX = touch.clientX;
+    targetY = touch.clientY;
+    createRipple(touch.clientX, touch.clientY);
+    stampGlow();
+    if (!spotlight.classList.contains('active')) {
+      spotlight.classList.add('active');
+    }
+  }
+
+  function onTouchMove(e) {
+    var touch = e.touches[0];
+    if (!touch) return;
+    targetX = touch.clientX;
+    targetY = touch.clientY;
+    stampGlow();
+  }
+
+  function onTouchEnd() {
+    targetX = -500;
+    targetY = -500;
+    spotlight.classList.remove('active');
+  }
+
   function fadeIn() {
     var els = document.querySelectorAll('.hero, .socials, footer, .status-line');
     for (var i = 0; i < els.length; i++) {
@@ -1021,6 +1063,9 @@
   window.addEventListener('resize', resize);
   window.addEventListener('mousemove', onMouseMove);
   document.addEventListener('mouseleave', onMouseLeave);
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: true });
+  document.addEventListener('touchend', onTouchEnd);
   videoOpacitySlider.addEventListener('input', onVideoOpacityChange);
   videoPlayPauseBtn.addEventListener('click', function (e) {
     e.stopPropagation();
