@@ -560,15 +560,8 @@
     if (newVideo.readyState >= 1) {
       newVideo.currentTime = 0;
     }
-    var promise = newVideo.play();
-    if (promise !== undefined) {
-      promise.then(function () {
-        if (showAscii && webglReady) startRenderLoop();
-      }).catch(function () {});
-    }
-    if (promise === undefined && showAscii && webglReady) {
-      startRenderLoop();
-    }
+    newVideo.play().catch(function () {});
+    if (showAscii && webglReady) startRenderLoop();
   }
 
   function drawWebGLFrame(shouldUpload) {
