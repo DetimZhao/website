@@ -444,6 +444,12 @@ footer p {
 
   .socials {
     gap: 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .social-link {
+    flex-shrink: 0;
   }
 
   .social-link span {
@@ -453,6 +459,7 @@ footer p {
   .social-link svg {
     width: 24px;
     height: 24px;
+    flex-shrink: 0;
   }
 
   .video-playpause {
