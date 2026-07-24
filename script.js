@@ -100,7 +100,7 @@
   ];
 
   var statuses = [
-    "Currently: building things",
+    "Currently: exploring what's next",
     "Based in: AZ, USA",
     "Say hi: detimzhao[at]gmail.com"
   ];
