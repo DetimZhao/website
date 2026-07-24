@@ -1,0 +1,40 @@
+name: Update resume PDF
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-resume:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download latest resume
+        run: |
+          curl -fL -o resume-new.pdf \
+            https://github.com/DetimZhao/resume-latex/releases/latest/download/Detim_Zhao_Resume.pdf
+
+      - name: Check for changes
+        id: check
+        run: |
+          if [ -f Detim_Zhao_Resume.pdf ] && diff -q Detim_Zhao_Resume.pdf resume-new.pdf > /dev/null 2>&1; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes to resume PDF"
+            exit 0
+          fi
+          mv resume-new.pdf Detim_Zhao_Resume.pdf
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit updated PDF
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Detim_Zhao_Resume.pdf
+          git commit -m "Update resume PDF"
+          git push
