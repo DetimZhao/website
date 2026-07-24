@@ -1075,5 +1075,29 @@
     togglePlayPause();
   });
 
+  // ── Keyboard shortcuts ──
+  var keyLegend = document.getElementById('key-legend');
+  var keyLegendOpen = false;
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
+    if (e.key === ' ') {
+      e.preventDefault();
+      togglePlayPause();
+    } else if (e.key === 'b' || e.key === 'B') {
+      e.preventDefault();
+      toggleBio({ stopPropagation: function () {} });
+    } else if (e.key === '?') {
+      e.preventDefault();
+      keyLegendOpen = !keyLegendOpen;
+      if (keyLegendOpen) {
+        keyLegend.classList.add('open');
+      } else {
+        keyLegend.classList.remove('open');
+      }
+    }
+  });
+
   boot();
 })();

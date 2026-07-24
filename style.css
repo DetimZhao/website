@@ -405,6 +405,38 @@ footer p {
   }
 }
 
+/* ── Key legend ── */
+
+.key-legend {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 10;
+  font-size: 0.7rem;
+  font-weight: 300;
+  color: rgba(235, 235, 235, 0.4);
+  letter-spacing: 0.03em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.key-legend.open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.key-legend kbd {
+  display: inline-block;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  padding: 2px 5px;
+  border: 1px solid rgba(235, 235, 235, 0.2);
+  border-radius: 3px;
+  background: rgba(235, 235, 235, 0.06);
+}
+
 @media (max-width: 600px) {
   main {
     padding: 1.5rem;
