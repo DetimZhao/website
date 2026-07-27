@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="dz-title dz-desc">
+  <title id="dz-title">DZ monogram</title>
+  <desc id="dz-desc">A capital D with a Z carved through its bowl; the negative space forms the second letter.</desc>
+  <defs>
+    <mask id="carve">
+      <rect width="32" height="32" fill="white"/>
+      <path d="M9.5 9.5 H21.5 L9.5 21 H21.5" fill="none" stroke="black" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter"/>
+    </mask>
+  </defs>
+  <rect width="32" height="32" fill="#0a0a0a"/>
+  <path d="M4 5 H9 C19 5 25 10 25 16 C25 22 19 27 9 27 H4 Z" fill="#ebebeb" mask="url(#carve)"/>
+</svg>
