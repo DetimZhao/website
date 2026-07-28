@@ -20,6 +20,15 @@
   var videoOpacity = 50;
   var videoPlaying = true;
   var videoPlayPauseBtn = document.getElementById('video-playpause');
+  var settingsToggle = document.getElementById('settings-toggle');
+  var settingsPanel = document.getElementById('settings-panel');
+  var cellSizeSlider = document.getElementById('cell-size');
+  var cellSizeVal = document.getElementById('cell-size-val');
+  var tileOpacitySlider = document.getElementById('tile-opacity');
+  var tileOpacityVal = document.getElementById('tile-opacity-val');
+  var glyphOpacitySlider = document.getElementById('glyph-opacity');
+  var glyphOpacityVal = document.getElementById('glyph-opacity-val');
+  var settingsOpen = false;
   var boomerang = true;
 
   // ---- Mouse ----
@@ -94,8 +103,8 @@
   // ---- Content ----
   var taglines = [
     "I'm just a guy",
-    "...who builds things",
-    "...thinks hard about stuff",
+    "...who loves building",
+    "...still learning",
     "...somewhere on the internet"
   ];
 
@@ -119,13 +128,13 @@
     videoFwd.src = customVideo;
     boomerang = false;
   } else {
-    videoFwd.src = './IMG_0783_720p.mp4';
+    videoFwd.src = './IMG_1417_720p.mp4';
   }
   videoFwd.load();
 
   if (boomerang && videoRev) {
     console.log('boomerang: setting rev src, loading');
-    videoRev.src = './IMG_0783_720p_rev.mp4';
+    videoRev.src = './IMG_1417_720p_rev.mp4';
     videoRev.load();
   }
 
@@ -851,8 +860,11 @@
   function updatePlayPauseVisibility() {
     if (videoDisabled) {
       videoPlayPauseBtn.classList.remove('visible');
+      settingsToggle.classList.remove('visible');
+      closeSettings();
     } else {
       videoPlayPauseBtn.classList.add('visible');
+      settingsToggle.classList.add('visible');
     }
   }
 
@@ -874,6 +886,8 @@
       canvasAscii.classList.remove('active');
       canvasAscii.style.opacity = '';
       videoPlayPauseBtn.classList.remove('visible', 'playing');
+      settingsToggle.classList.remove('visible');
+      closeSettings();
     } else {
       canvasAscii.style.opacity = (val / 100).toFixed(2);
       updatePlayPauseVisibility();
@@ -888,6 +902,64 @@
 
   function onVideoOpacityChange() {
     applyVideoOpacity(parseInt(videoOpacitySlider.value, 10));
+  }
+
+  // =========================================================================
+  // ASCII SETTINGS
+  // =========================================================================
+
+  function applyCellSize(val) {
+    if (isNaN(val)) return;
+    cellSizePx = Math.max(6, Math.min(24, val));
+    cellSizeSlider.value = cellSizePx;
+    cellSizeVal.textContent = cellSizePx;
+    localStorage.setItem('cell-size', cellSizePx);
+    if (webglReady && gl) {
+      updateWebGLGrid();
+    }
+  }
+
+  function applyTileOpacity(val) {
+    if (isNaN(val)) return;
+    tileOpacity = val / 100;
+    tileOpacitySlider.value = val;
+    tileOpacityVal.textContent = val;
+    localStorage.setItem('tile-opacity', val);
+    if (webglReady && gl && locs['uTileOpacity']) {
+      gl.useProgram(prog);
+      gl.uniform1f(locs['uTileOpacity'], tileOpacity);
+    }
+  }
+
+  function applyGlyphOpacity(val) {
+    if (isNaN(val)) return;
+    glyphOpacity = val / 100;
+    glyphOpacitySlider.value = val;
+    glyphOpacityVal.textContent = val;
+    localStorage.setItem('glyph-opacity', val);
+    if (webglReady && gl && locs['uGlyphOpacity']) {
+      gl.useProgram(prog);
+      gl.uniform1f(locs['uGlyphOpacity'], glyphOpacity);
+    }
+  }
+
+  function openSettings() {
+    settingsOpen = true;
+    settingsPanel.classList.add('open');
+    settingsToggle.classList.add('active');
+    settingsToggle.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeSettings() {
+    if (!settingsOpen) return;
+    settingsOpen = false;
+    settingsPanel.classList.remove('open');
+    settingsToggle.classList.remove('active');
+    settingsToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleSettings() {
+    if (settingsOpen) { closeSettings(); } else { openSettings(); }
   }
 
   // =========================================================================
@@ -1023,16 +1095,37 @@
     if (videoDisabled) {
       canvasAscii.style.opacity = '';
       videoPlayPauseBtn.classList.remove('visible', 'playing');
+      settingsToggle.classList.remove('visible');
       videoFwd.pause();
     } else {
       canvasAscii.style.opacity = (videoOpacity / 100).toFixed(2);
       videoPlayPauseBtn.classList.add('visible');
+      settingsToggle.classList.add('visible');
       if (videoPlaying) {
         videoPlayPauseBtn.classList.add('playing');
       } else {
         videoPlayPauseBtn.classList.remove('playing');
       }
     }
+
+    var savedCellSize = localStorage.getItem('cell-size');
+    var savedTileOpacity = localStorage.getItem('tile-opacity');
+    var savedGlyphOpacity = localStorage.getItem('glyph-opacity');
+    if (savedCellSize !== null) {
+      cellSizePx = Math.max(6, Math.min(24, parseInt(savedCellSize, 10)));
+    }
+    if (savedTileOpacity !== null) {
+      tileOpacity = Math.max(0, Math.min(1, parseInt(savedTileOpacity, 10) / 100));
+    }
+    if (savedGlyphOpacity !== null) {
+      glyphOpacity = Math.max(0, Math.min(1, parseInt(savedGlyphOpacity, 10) / 100));
+    }
+    cellSizeSlider.value = cellSizePx;
+    cellSizeVal.textContent = cellSizePx;
+    tileOpacitySlider.value = Math.round(tileOpacity * 100);
+    tileOpacityVal.textContent = Math.round(tileOpacity * 100);
+    glyphOpacitySlider.value = Math.round(glyphOpacity * 100);
+    glyphOpacityVal.textContent = Math.round(glyphOpacity * 100);
 
     videoFwd.loop = !boomerang;
 
@@ -1058,6 +1151,9 @@
     if (bioOpen && !taglineEl.contains(e.target) && !bioPanel.contains(e.target)) {
       closeBio();
     }
+    if (settingsOpen && !settingsPanel.contains(e.target) && !settingsToggle.contains(e.target)) {
+      closeSettings();
+    }
   });
 
   window.addEventListener('resize', resize);
@@ -1074,12 +1170,32 @@
   canvasAscii.addEventListener('click', function (e) {
     togglePlayPause();
   });
+  cellSizeSlider.addEventListener('input', function () {
+    applyCellSize(parseInt(cellSizeSlider.value, 10));
+  });
+  tileOpacitySlider.addEventListener('input', function () {
+    applyTileOpacity(parseInt(tileOpacitySlider.value, 10));
+  });
+  glyphOpacitySlider.addEventListener('input', function () {
+    applyGlyphOpacity(parseInt(glyphOpacitySlider.value, 10));
+  });
+  settingsToggle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    toggleSettings();
+  });
+  settingsPanel.addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
 
   // ── Keyboard shortcuts ──
   var keyLegend = document.getElementById('key-legend');
   var keyLegendOpen = false;
 
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && settingsOpen) {
+      closeSettings();
+      return;
+    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
     if (e.key === ' ') {

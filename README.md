@@ -21,8 +21,8 @@ A local server is needed. Opening `index.html` directly can break video loading.
 | `index.html` | Page shell |
 | `style.css` | Layout and animations |
 | `script.js` | Binary rain, ASCII video overlay, interactions |
-| `IMG_0783_720p.mp4` | Background video |
-| `IMG_0783_720p_rev.mp4` | Reverse clip for boomerang loop |
+| `IMG_1309_720p.mp4` | Background video |
+| `IMG_1309_720p_rev.mp4` | Reverse clip for boomerang loop |
 | `Detim_Zhao_Resume.pdf` | Resume |
 | `favicon.svg` | DZ monogram |
 | `apple-touch-icon.svg` / `.png` | iOS home screen icon |
