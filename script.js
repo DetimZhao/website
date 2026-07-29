@@ -276,7 +276,6 @@
     if (incoming.fwd.readyState >= 2) {
       startCrossfade();
     } else {
-      var s = slots[activeSlotIdx];
       var clipIdx = nextClipIdx();
       loadClip(activeSlotIdx, clipIdx);
       currentDirection = 'fwd';
@@ -285,8 +284,6 @@
       renderToken++;
       video.play().catch(function () {});
       if (showAscii && webglReady) startRenderLoop();
-      var nextNext = nextClipIdx();
-      loadClip(inactiveIdx, nextNext);
     }
   }
 
@@ -305,8 +302,6 @@
       renderToken++;
       video.play().catch(function () {});
       if (showAscii && webglReady) startRenderLoop();
-      var nextNext = nextClipIdx();
-      loadClip(inactiveIdx, nextNext);
     }
   }
 
