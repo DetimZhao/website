@@ -21,7 +21,9 @@ body {
 }
 
 video#bg-video,
-video#bg-video-rev {
+video#bg-video-rev,
+video#bg-video-b,
+video#bg-video-b-rev {
   display: none;
 }
 

@@ -1,9 +1,6 @@
 (function () {
   var canvasRain = document.getElementById('rain');
   var canvasAscii = document.getElementById('ascii');
-  var videoFwd = document.getElementById('bg-video');
-  var videoRev = document.getElementById('bg-video-rev') || null;
-  var video = videoFwd;
   var spotlight = document.querySelector('.spotlight');
   var taglineEl = document.getElementById('tagline');
   var bioPanel = document.getElementById('bio-panel');
@@ -81,6 +78,7 @@
   var locs = {};
   var atlasTex;
   var videoTex;
+  var videoTexB;
   var webglCols = 80;
   var webglRows = 45;
   var actualCellSize = 12;
@@ -91,12 +89,6 @@
   var glowCenters = new Float32Array(MAX_GLOW_SHADER * 2);
   var glowRadiiPx = new Float32Array(MAX_GLOW_SHADER);
   var glowStarts = new Float32Array(MAX_GLOW_SHADER);
-  var lastPresentedFrames = -1;
-  var videoFrameReady = true;
-  var videoFrameDirty = false;
-  var videoTextureAllocated = false;
-  var lastVideoTime = 0;
-  var vfcHandle = 0;
   var videoW = 0;
   var videoH = 0;
 
@@ -119,23 +111,214 @@
   var bioOpen = false;
   var taglinePaused = false;
 
-  // ---- Video source ----
+  // ---- Video rotation ----
   var urlParams = new URLSearchParams(window.location.search);
   var customVideo = urlParams.get('video');
   var debugPerf = urlParams.get('debug') === '1';
   var lastFrameTime = 0;
-  if (customVideo) {
-    videoFwd.src = customVideo;
-    boomerang = false;
-  } else {
-    videoFwd.src = './IMG_1417_720p.mp4';
-  }
-  videoFwd.load();
 
-  if (boomerang && videoRev) {
-    console.log('boomerang: setting rev src, loading');
-    videoRev.src = './IMG_1417_720p_rev.mp4';
-    videoRev.load();
+  var CLIPS = [
+    { fwd: './IMG_0783_720p.mp4', rev: './IMG_0783_720p_rev.mp4' },
+    { fwd: './IMG_1309_720p.mp4', rev: './IMG_1309_720p_rev.mp4' },
+    { fwd: './IMG_1417_720p.mp4', rev: './IMG_1417_720p_rev.mp4' }
+  ];
+  var CROSSFADE_MS = 500;
+  var queue = [];
+  var lastClipIdx = -1;
+  var currentDirection = 'fwd';
+  var crossfading = false;
+  var crossfadeStart = 0;
+  var crossfadeProgress = 0;
+  var crossfadeInEl = null;
+
+  var elemSt = {};
+  function getSt(el) {
+    if (!elemSt[el.id]) {
+      elemSt[el.id] = {
+        loaded: false, frameReady: false, frameDirty: false,
+        alloc: false, lastPF: -1, lastVT: 0, vw: 0, vh: 0
+      };
+    }
+    return elemSt[el.id];
+  }
+
+  var slots = [];
+  var activeSlotIdx = 0;
+  var video = null;
+
+  function shuffleArray(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function refillQueue() {
+    queue = [];
+    for (var i = 0; i < CLIPS.length; i++) queue.push(i);
+    shuffleArray(queue);
+    if (lastClipIdx >= 0 && queue[0] === lastClipIdx) {
+      var si = 1 + Math.floor(Math.random() * (queue.length - 1));
+      var tmp = queue[0]; queue[0] = queue[si]; queue[si] = tmp;
+    }
+  }
+
+  function nextClipIdx() {
+    if (queue.length === 0) refillQueue();
+    var idx = queue.shift();
+    lastClipIdx = idx;
+    return idx;
+  }
+
+  function updateVideoPtr() {
+    var s = slots[activeSlotIdx];
+    video = (currentDirection === 'fwd') ? s.fwd : s.rev;
+  }
+
+  function pauseAllSlots() {
+    for (var i = 0; i < slots.length; i++) {
+      if (slots[i].fwd && !slots[i].fwd.paused) slots[i].fwd.pause();
+      if (slots[i].rev && !slots[i].rev.paused) slots[i].rev.pause();
+    }
+  }
+
+  function playActiveSlot() {
+    var s = slots[activeSlotIdx];
+    var el = (currentDirection === 'fwd') ? s.fwd : s.rev;
+    el.play().catch(function () {});
+    if (crossfading && crossfadeInEl) {
+      crossfadeInEl.play().catch(function () {});
+    }
+  }
+
+  function loadClip(slotIdx, clipIdx) {
+    var s = slots[slotIdx];
+    var clip = CLIPS[clipIdx];
+    s.clipIdx = clipIdx;
+    s.fwd.src = clip.fwd;
+    s.rev.src = clip.rev;
+    s.fwd.load();
+    s.rev.load();
+  }
+
+  function switchDirection(toRev) {
+    var s = slots[activeSlotIdx];
+    var newEl = toRev ? s.rev : s.fwd;
+    var oldEl = toRev ? s.fwd : s.rev;
+    renderToken++;
+    currentDirection = toRev ? 'rev' : 'fwd';
+    video = newEl;
+    var st = getSt(newEl);
+    st.frameReady = false;
+    st.frameDirty = false;
+    st.alloc = false;
+    st.lastPF = -1;
+    st.lastVT = 0;
+    lastFrameTime = 0;
+    newEl.play().catch(function () {});
+    if (oldEl && oldEl !== newEl && oldEl.readyState >= 1) {
+      oldEl.currentTime = 0;
+    }
+    if (showAscii && webglReady) startRenderLoop();
+  }
+
+  function startCrossfade() {
+    var inactiveIdx = 1 - activeSlotIdx;
+    var incoming = slots[inactiveIdx];
+    var inEl = incoming.fwd;
+    crossfading = true;
+    crossfadeStart = performance.now();
+    crossfadeProgress = 0;
+    crossfadeInEl = inEl;
+    var st = getSt(inEl);
+    st.frameReady = false;
+    st.frameDirty = false;
+    st.alloc = false;
+    st.lastPF = -1;
+    inEl.currentTime = 0;
+    inEl.play().catch(function () {});
+    renderToken++;
+    startRenderLoop();
+  }
+
+  function completeCrossfade() {
+    crossfading = false;
+    crossfadeProgress = 0;
+    crossfadeInEl = null;
+    var oldSlot = slots[activeSlotIdx];
+    var oldEl = (currentDirection === 'fwd') ? oldSlot.fwd : oldSlot.rev;
+    if (oldEl.readyState >= 1) oldEl.currentTime = 0;
+    activeSlotIdx = 1 - activeSlotIdx;
+    currentDirection = 'fwd';
+    updateVideoPtr();
+    var st = getSt(video);
+    st.frameReady = false;
+    st.frameDirty = false;
+    st.alloc = false;
+    st.lastPF = -1;
+    st.lastVT = 0;
+    videoW = 0;
+    videoH = 0;
+    videoReady = true;
+    var inactiveIdx = 1 - activeSlotIdx;
+    var nextIdx = (queue.length > 0) ? queue[0] : nextClipIdx();
+    loadClip(inactiveIdx, nextIdx);
+    renderToken++;
+    startRenderLoop();
+  }
+
+  function advanceClip() {
+    var inactiveIdx = 1 - activeSlotIdx;
+    var incoming = slots[inactiveIdx];
+    if (incoming.fwd.readyState >= 2) {
+      startCrossfade();
+    } else {
+      var s = slots[activeSlotIdx];
+      var clipIdx = nextClipIdx();
+      loadClip(activeSlotIdx, clipIdx);
+      currentDirection = 'fwd';
+      updateVideoPtr();
+      videoReady = true;
+      renderToken++;
+      video.play().catch(function () {});
+      if (showAscii && webglReady) startRenderLoop();
+      var nextNext = nextClipIdx();
+      loadClip(inactiveIdx, nextNext);
+    }
+  }
+
+  function wireSlot(slot, slotIdx) {
+    slot.fwd.addEventListener('loadeddata', function () {
+      var st = getSt(slot.fwd);
+      st.loaded = true;
+      st.vw = slot.fwd.videoWidth;
+      st.vh = slot.fwd.videoHeight;
+      if (slotIdx === activeSlotIdx && currentDirection === 'fwd') {
+        videoW = st.vw;
+        videoH = st.vh;
+        videoReady = true;
+        if (videoPlaying && !videoDisabled) {
+          slot.fwd.play().catch(function () {});
+          if (webglReady) activateAscii();
+        }
+      }
+    });
+    slot.fwd.addEventListener('error', function () {
+      if (slotIdx === activeSlotIdx && currentDirection === 'fwd') videoReady = false;
+    });
+    slot.fwd.addEventListener('ended', function () {
+      if (slotIdx !== activeSlotIdx || currentDirection !== 'fwd') return;
+      if (!boomerang) return;
+      switchDirection(true);
+    });
+    slot.rev.addEventListener('loadeddata', function () {
+      getSt(slot.rev).loaded = true;
+    });
+    slot.rev.addEventListener('ended', function () {
+      if (slotIdx !== activeSlotIdx || currentDirection !== 'rev') return;
+      advanceClip();
+    });
   }
 
   // =========================================================================
@@ -204,7 +387,8 @@
 
     var fsSrc =
       'precision mediump float;varying vec2 vUV;' +
-      'uniform sampler2D uVideo;uniform sampler2D uAtlas;' +
+      'uniform sampler2D uVideo;uniform sampler2D uVideoB;uniform sampler2D uAtlas;' +
+      'uniform float uCrossfade;' +
       'uniform vec2 uCanvasSize;uniform float uCols;uniform float uRows;uniform vec2 uInvGrid;uniform vec2 uCellSizePx;' +
       'uniform float uCharAspectRatio;uniform float uCharFillRatio;' +
       'uniform float uGamma;uniform float uEdgeLo;uniform float uEdgeHi;' +
@@ -255,7 +439,9 @@
       'vec2 cellCoord=floor(vUV*grid);' +
       'vec2 cellUV=fract(vUV*grid);' +
       'vec2 tileCenterUV=(cellCoord+0.5)*uInvGrid;' +
-      'vec3 videoRGB=texture2D(uVideo,tileCenterUV).rgb;' +
+      'vec3 vA=texture2D(uVideo,tileCenterUV).rgb;' +
+      'vec3 vB=texture2D(uVideoB,tileCenterUV).rgb;' +
+      'vec3 videoRGB=mix(vA,vB,uCrossfade);' +
       'float lum=pow(luminance(videoRGB),uGamma);' +
       'float gAmt=0.0;if(uGlowCount>0){gAmt=glowAmount(tileCenterUV);}' +
       'float lumAdj=lum;' +
@@ -306,7 +492,8 @@
     }
 
     var uniformNames = [
-      'uVideo', 'uAtlas', 'uCanvasSize', 'uCols', 'uRows', 'uInvGrid', 'uCellSizePx',
+      'uVideo', 'uVideoB', 'uAtlas', 'uCrossfade',
+      'uCanvasSize', 'uCols', 'uRows', 'uInvGrid', 'uCellSizePx',
       'uCharAspectRatio', 'uCharFillRatio', 'uGamma', 'uEdgeLo', 'uEdgeHi',
       'uTileOpacity', 'uGlyphOpacity', 'uBlendStrength', 'uGlyphCount',
       'uAtlasGrid', 'uAtlasPadding',
@@ -341,6 +528,8 @@
   // ---- Video Texture ----
 
   function setupVideoTexture() {
+    var black = new Uint8Array([0, 0, 0, 255]);
+
     videoTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, videoTex);
@@ -350,7 +539,17 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    var black = new Uint8Array([0, 0, 0, 255]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, black);
+
+    videoTexB = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, videoTexB);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, black);
   }
 
@@ -394,7 +593,7 @@
 
     gl.useProgram(prog);
     gl.uniform2f(locs['uAtlasGrid'], gridCols, gridRows);
-    var pad = 2 / atlasGlyphSize; // atlasPaddingPx / atlasGlyphSize
+    var pad = 2 / atlasGlyphSize;
     gl.uniform2f(locs['uAtlasPadding'], pad, pad);
   }
 
@@ -471,7 +670,9 @@
   function setupWebGLUniforms() {
     gl.useProgram(prog);
     gl.uniform1i(locs['uVideo'], 0);
+    gl.uniform1i(locs['uVideoB'], 2);
     gl.uniform1i(locs['uAtlas'], 1);
+    gl.uniform1f(locs['uCrossfade'], 0);
     gl.uniform1f(locs['uCharAspectRatio'], charAspectRatio);
     gl.uniform1f(locs['uCharFillRatio'], charFillRatio);
     gl.uniform1f(locs['uGamma'], gamma);
@@ -548,26 +749,21 @@
 
   // ---- Render ----
 
-  var vfcRequested = false;
   var rafId = 0;
   var renderToken = 0;
-  var currentVfcVideo = null;
 
-  function startRenderLoop() {
-    var token = renderToken;
-    currentVfcVideo = video;
-    if (!showAscii) return;
-    if (typeof video.requestVideoFrameCallback === 'function') {
-      currentVfcVideo.requestVideoFrameCallback(function callback(now, metadata) {
+  function startVfc(el, token) {
+    var st = getSt(el);
+    if (typeof el.requestVideoFrameCallback === 'function') {
+      el.requestVideoFrameCallback(function callback(now, metadata) {
         if (token !== renderToken || !showAscii) return;
         var presented = metadata && typeof metadata.presentedFrames === 'number' ? metadata.presentedFrames : -1;
-        var isNew = presented !== lastPresentedFrames;
-        lastPresentedFrames = presented;
+        var isNew = presented !== st.lastPF;
+        st.lastPF = presented;
         if (isNew) {
-          videoFrameDirty = true;
-          if (!videoFrameReady && presented > 0 && currentVfcVideo.videoWidth > 0) {
-            videoFrameReady = true;
-            if (debugPerf) console.log('boomerang: first valid frame from ' + currentVfcVideo.id + ' presentedFrames=' + presented);
+          st.frameDirty = true;
+          if (!st.frameReady && presented > 0 && el.videoWidth > 0) {
+            st.frameReady = true;
           }
         }
         if (debugPerf) {
@@ -579,14 +775,23 @@
           lastFrameTime = nowMs;
         }
         if (token === renderToken && showAscii) {
-          currentVfcVideo.requestVideoFrameCallback(callback);
+          el.requestVideoFrameCallback(callback);
         }
       });
     } else {
-      if (video.currentTime !== lastVideoTime) {
-        lastVideoTime = video.currentTime;
-        videoFrameDirty = true;
+      if (el.currentTime !== st.lastVT) {
+        st.lastVT = el.currentTime;
+        st.frameDirty = true;
       }
+    }
+  }
+
+  function startRenderLoop() {
+    var token = renderToken;
+    if (!showAscii) return;
+    startVfc(video, token);
+    if (crossfading && crossfadeInEl) {
+      startVfc(crossfadeInEl, token);
     }
   }
 
@@ -594,63 +799,58 @@
     rafId = requestAnimationFrame(renderLoopRaf);
     if (!showAscii || !webglReady || !gl) return;
     pushGlowDynamics();
-    var dirty = videoFrameDirty;
-    videoFrameDirty = false;
-    drawWebGLFrame(dirty);
+    drawWebGLFrame();
   }
 
-  function switchVideo(newVideo) {
-    if (!newVideo) return;
-    var oldVideo = video;
-    renderToken++;
-    var switchStart = debugPerf ? performance.now() : 0;
-    console.log('boomerang: switchVideo id=' + newVideo.id + ' readyState=' + newVideo.readyState + ' showAscii=' + showAscii + ' webglReady=' + webglReady);
-    video = newVideo;
-    videoFrameReady = false;
-    videoFrameDirty = false;
-    videoTextureAllocated = false;
-    lastPresentedFrames = -1;
-    lastFrameTime = 0;
-    lastVideoTime = 0;
-    newVideo.play().catch(function () {});
-    if (oldVideo && oldVideo !== newVideo && oldVideo.readyState >= 1) {
-      oldVideo.currentTime = 0;
+  function uploadEl(texUnit, tex, el, st) {
+    if (!st.frameReady) return;
+    var vw = el.videoWidth || 0;
+    var vh = el.videoHeight || 0;
+    if (vw <= 0 || vh <= 0) return;
+    gl.activeTexture(texUnit);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    try {
+      if (!st.alloc) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, el);
+        st.alloc = true;
+      } else {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, el);
+      }
+    } catch (e) {
+      st.alloc = false;
     }
-    if (showAscii && webglReady) {
-      console.log('boomerang: calling startRenderLoop');
-      startRenderLoop();
-    }
-    if (debugPerf) {
-      var elapsed = (performance.now() - switchStart).toFixed(1);
-      console.log('boomerang: switchVideo completed in ' + elapsed + 'ms');
+    if (vw !== videoW || vh !== videoH) {
+      videoW = vw;
+      videoH = vh;
     }
   }
 
-  function drawWebGLFrame(shouldUpload) {
+  function drawWebGLFrame() {
     if (!webglReady || !gl) return;
 
-    if (shouldUpload && videoFrameReady) {
-      var vw = video.videoWidth || 0;
-      var vh = video.videoHeight || 0;
-      if (vw > 0 && vh > 0) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, videoTex);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        try {
-          if (!videoTextureAllocated) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-            videoTextureAllocated = true;
-          } else {
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, video);
-          }
-        } catch (e) {
-          videoTextureAllocated = false;
-        }
-        if (vw !== videoW || vh !== videoH) {
-          videoW = vw;
-          videoH = vh;
-        }
+    var st = getSt(video);
+    if (st.frameDirty) {
+      uploadEl(gl.TEXTURE0, videoTex, video, st);
+      st.frameDirty = false;
+    }
+
+    if (crossfading && crossfadeInEl) {
+      var stIn = getSt(crossfadeInEl);
+      if (stIn.frameDirty) {
+        uploadEl(gl.TEXTURE2, videoTexB, crossfadeInEl, stIn);
+        stIn.frameDirty = false;
       }
+      var elapsed = performance.now() - crossfadeStart;
+      crossfadeProgress = Math.min(1, elapsed / CROSSFADE_MS);
+      gl.useProgram(prog);
+      gl.uniform1f(locs['uCrossfade'], crossfadeProgress);
+      if (crossfadeProgress >= 1) {
+        completeCrossfade();
+      }
+    } else {
+      gl.useProgram(prog);
+      gl.uniform1f(locs['uCrossfade'], 0);
     }
 
     gl.activeTexture(gl.TEXTURE1);
@@ -664,8 +864,9 @@
     showAscii = true;
     ctx2d.clearRect(0, 0, canvasRain.width, canvasRain.height);
     resizeWebGLCanvas();
-    lastPresentedFrames = -1;
-    videoFrameDirty = true;
+    var st = getSt(video);
+    st.lastPF = -1;
+    st.frameDirty = true;
     canvasAscii.classList.add('active');
     startRenderLoop();
   }
@@ -817,7 +1018,7 @@
 
   function pauseVideo() {
     videoPlaying = false;
-    video.pause();
+    pauseAllSlots();
     showAscii = false;
     canvasAscii.classList.remove('active');
     videoPlayPauseBtn.classList.remove('playing');
@@ -881,7 +1082,7 @@
     videoDisabled = (val === 0);
 
     if (val === 0) {
-      video.pause();
+      pauseAllSlots();
       showAscii = false;
       canvasAscii.classList.remove('active');
       canvasAscii.style.opacity = '';
@@ -1037,40 +1238,6 @@
     if (webglReady) resizeWebGLCanvas();
   }
 
-  // ---- Video events ----
-
-  videoFwd.addEventListener('loadeddata', function () {
-    videoW = videoFwd.videoWidth;
-    videoH = videoFwd.videoHeight;
-    videoReady = true;
-    if (videoPlaying && !videoDisabled) {
-      videoFwd.play().catch(function () {});
-      if (webglReady) activateAscii();
-    }
-  });
-
-  videoFwd.addEventListener('error', function () {
-    videoReady = false;
-  });
-
-  videoFwd.addEventListener('ended', function () {
-    console.log('boomerang: fwd ended, boomerang=' + boomerang + ' videoRev=' + !!videoRev + ' showAscii=' + showAscii);
-    if (!boomerang || !videoRev) return;
-    console.log('boomerang: switching to rev');
-    switchVideo(videoRev);
-  });
-
-  if (videoRev) {
-    videoRev.addEventListener('loadeddata', function () {
-      videoReady = true;
-    });
-
-    videoRev.addEventListener('ended', function () {
-      console.log('boomerang: rev ended, switching to fwd');
-      switchVideo(videoFwd);
-    });
-  }
-
   // =========================================================================
   // BOOT
   // =========================================================================
@@ -1092,22 +1259,6 @@
       videoDisabled = (val === 0);
     }
 
-    if (videoDisabled) {
-      canvasAscii.style.opacity = '';
-      videoPlayPauseBtn.classList.remove('visible', 'playing');
-      settingsToggle.classList.remove('visible');
-      videoFwd.pause();
-    } else {
-      canvasAscii.style.opacity = (videoOpacity / 100).toFixed(2);
-      videoPlayPauseBtn.classList.add('visible');
-      settingsToggle.classList.add('visible');
-      if (videoPlaying) {
-        videoPlayPauseBtn.classList.add('playing');
-      } else {
-        videoPlayPauseBtn.classList.remove('playing');
-      }
-    }
-
     var savedCellSize = localStorage.getItem('cell-size');
     var savedTileOpacity = localStorage.getItem('tile-opacity');
     var savedGlyphOpacity = localStorage.getItem('glyph-opacity');
@@ -1127,7 +1278,43 @@
     glyphOpacitySlider.value = Math.round(glyphOpacity * 100);
     glyphOpacityVal.textContent = Math.round(glyphOpacity * 100);
 
-    videoFwd.loop = !boomerang;
+    slots = [
+      { fwd: document.getElementById('bg-video'), rev: document.getElementById('bg-video-rev'), clipIdx: -1 },
+      { fwd: document.getElementById('bg-video-b'), rev: document.getElementById('bg-video-b-rev'), clipIdx: -1 }
+    ];
+    wireSlot(slots[0], 0);
+    wireSlot(slots[1], 1);
+
+    if (customVideo) {
+      boomerang = false;
+      slots[0].fwd.src = customVideo;
+      slots[0].fwd.loop = true;
+      slots[0].fwd.load();
+    } else {
+      var firstIdx = nextClipIdx();
+      loadClip(0, firstIdx);
+      var secondIdx = nextClipIdx();
+      loadClip(1, secondIdx);
+    }
+    activeSlotIdx = 0;
+    currentDirection = 'fwd';
+    updateVideoPtr();
+
+    if (videoDisabled) {
+      canvasAscii.style.opacity = '';
+      videoPlayPauseBtn.classList.remove('visible', 'playing');
+      settingsToggle.classList.remove('visible');
+      pauseAllSlots();
+    } else {
+      canvasAscii.style.opacity = (videoOpacity / 100).toFixed(2);
+      videoPlayPauseBtn.classList.add('visible');
+      settingsToggle.classList.add('visible');
+      if (videoPlaying) {
+        videoPlayPauseBtn.classList.add('playing');
+      } else {
+        videoPlayPauseBtn.classList.remove('playing');
+      }
+    }
 
     initWebGL();
     resize();
@@ -1138,9 +1325,9 @@
     setInterval(rotateStatus, 10000);
     setTimeout(fadeIn, 200);
 
-    if (videoFwd.readyState >= 2) {
-      videoW = videoFwd.videoWidth;
-      videoH = videoFwd.videoHeight;
+    if (video.readyState >= 2) {
+      videoW = video.videoWidth;
+      videoH = video.videoHeight;
       videoReady = true;
       if (webglReady && !videoDisabled && videoPlaying) activateAscii();
     }
