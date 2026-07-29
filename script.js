@@ -196,6 +196,8 @@
     var s = slots[slotIdx];
     var clip = CLIPS[clipIdx];
     s.clipIdx = clipIdx;
+    s.fwd.preload = 'auto';
+    s.rev.preload = 'auto';
     s.fwd.src = clip.fwd;
     s.rev.src = clip.rev;
     s.fwd.load();
@@ -1293,8 +1295,6 @@
     } else {
       var firstIdx = nextClipIdx();
       loadClip(0, firstIdx);
-      var secondIdx = nextClipIdx();
-      loadClip(1, secondIdx);
     }
     activeSlotIdx = 0;
     currentDirection = 'fwd';
