@@ -264,7 +264,7 @@
     videoH = 0;
     videoReady = true;
     var inactiveIdx = 1 - activeSlotIdx;
-    var nextIdx = (queue.length > 0) ? queue[0] : nextClipIdx();
+    var nextIdx = nextClipIdx();
     loadClip(inactiveIdx, nextIdx);
     renderToken++;
     startRenderLoop();
@@ -277,6 +277,26 @@
       startCrossfade();
     } else {
       var s = slots[activeSlotIdx];
+      var clipIdx = nextClipIdx();
+      loadClip(activeSlotIdx, clipIdx);
+      currentDirection = 'fwd';
+      updateVideoPtr();
+      videoReady = true;
+      renderToken++;
+      video.play().catch(function () {});
+      if (showAscii && webglReady) startRenderLoop();
+      var nextNext = nextClipIdx();
+      loadClip(inactiveIdx, nextNext);
+    }
+  }
+
+  function skipToNext() {
+    if (crossfading) return;
+    var inactiveIdx = 1 - activeSlotIdx;
+    var incoming = slots[inactiveIdx];
+    if (incoming.fwd.readyState >= 2) {
+      startCrossfade();
+    } else {
       var clipIdx = nextClipIdx();
       loadClip(activeSlotIdx, clipIdx);
       currentDirection = 'fwd';
@@ -1399,6 +1419,9 @@
       } else {
         keyLegend.classList.remove('open');
       }
+    } else if (e.key === 'n' || e.key === 'N') {
+      e.preventDefault();
+      if (videoPlaying && !videoDisabled && boomerang) skipToNext();
     }
   });
 
