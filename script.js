@@ -118,9 +118,9 @@
   var lastFrameTime = 0;
 
   var CLIPS = [
-    { fwd: './IMG_0783_720p.mp4', rev: './IMG_0783_720p_rev.mp4' },
-    { fwd: './IMG_1309_720p.mp4', rev: './IMG_1309_720p_rev.mp4' },
-    { fwd: './IMG_1417_720p.mp4', rev: './IMG_1417_720p_rev.mp4' }
+    { fwd: './assets/videos/IMG_0783.mp4', rev: './assets/videos/IMG_0783_rev.mp4' },
+    { fwd: './assets/videos/IMG_1309.mp4', rev: './assets/videos/IMG_1309_rev.mp4' },
+    { fwd: './assets/videos/IMG_1417.mp4', rev: './assets/videos/IMG_1417_rev.mp4' }
   ];
   var CROSSFADE_MS = 500;
   var nextClipPos = 0;

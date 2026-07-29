@@ -21,9 +21,9 @@ A local server is needed. Opening `index.html` directly can break video loading.
 | `index.html` | Page shell |
 | `style.css` | Layout and animations |
 | `script.js` | Binary rain, ASCII video overlay, interactions |
-| `IMG_0783_720p.mp4` / `_rev.mp4` | Clip 0 (forward + reverse) |
-| `IMG_1309_720p.mp4` / `_rev.mp4` | Clip 1 (forward + reverse) |
-| `IMG_1417_720p.mp4` / `_rev.mp4` | Clip 2 (forward + reverse) |
+| `assets/videos/IMG_0783.mp4` / `_rev.mp4` | Clip 0 (forward + reverse) |
+| `assets/videos/IMG_1309.mp4` / `_rev.mp4` | Clip 1 (forward + reverse) |
+| `assets/videos/IMG_1417.mp4` / `_rev.mp4` | Clip 2 (forward + reverse) |
 | `Detim_Zhao_Resume.pdf` | Resume |
 | `favicon.svg` | DZ monogram |
 | `apple-touch-icon.svg` / `.png` | iOS home screen icon |
@@ -32,10 +32,10 @@ A local server is needed. Opening `index.html` directly can break video loading.
 
 - Binary rain canvas with spotlight follow
 - WebGL ASCII video overlay with boomerang playback
-- Clip rotation: shuffle across 3 clips (no repeat) with shader crossfade
+- Clip rotation: sequential cycle across 3 clips with shader crossfade
 - Rotating taglines and status line
 - Bio panel toggle
-- Keyboard shortcuts: `Space` play/pause, `B` bio, `?` help
+- Keyboard shortcuts: `Space` play/pause, `N` next clip, `B` bio, `?` help
 - Video opacity slider
 - GoatCounter analytics
 
