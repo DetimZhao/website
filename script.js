@@ -123,8 +123,7 @@
     { fwd: './IMG_1417_720p.mp4', rev: './IMG_1417_720p_rev.mp4' }
   ];
   var CROSSFADE_MS = 500;
-  var shuffleOrder = [];
-  var shufflePos = 0;
+  var nextClipPos = 0;
   var currentDirection = 'fwd';
   var crossfading = false;
   var crossfadeStart = 0;
@@ -146,32 +145,10 @@
   var activeSlotIdx = 0;
   var video = null;
 
-  function shuffleArray(arr) {
-    for (var i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-    }
-    return arr;
-  }
-
-  function buildShuffle(last) {
-    var order = [];
-    for (var i = 0; i < CLIPS.length; i++) order.push(i);
-    shuffleArray(order);
-    if (last >= 0 && order[0] === last) {
-      var swapIdx = 1 + Math.floor(Math.random() * (order.length - 1));
-      var tmp = order[0]; order[0] = order[swapIdx]; order[swapIdx] = tmp;
-    }
-    return order;
-  }
-
   function nextClipIdx() {
-    if (shufflePos >= shuffleOrder.length) {
-      var last = shuffleOrder.length > 0 ? shuffleOrder[shuffleOrder.length - 1] : -1;
-      shuffleOrder = buildShuffle(last);
-      shufflePos = 0;
-    }
-    return shuffleOrder[shufflePos++];
+    var idx = nextClipPos % CLIPS.length;
+    nextClipPos++;
+    return idx;
   }
 
   function updateVideoPtr() {
