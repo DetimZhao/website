@@ -123,8 +123,8 @@
     { fwd: './IMG_1417_720p.mp4', rev: './IMG_1417_720p_rev.mp4' }
   ];
   var CROSSFADE_MS = 500;
-  var queue = [];
-  var lastClipIdx = -1;
+  var shuffleOrder = [];
+  var shufflePos = 0;
   var currentDirection = 'fwd';
   var crossfading = false;
   var crossfadeStart = 0;
@@ -154,21 +154,24 @@
     return arr;
   }
 
-  function refillQueue() {
-    queue = [];
-    for (var i = 0; i < CLIPS.length; i++) queue.push(i);
-    shuffleArray(queue);
-    if (lastClipIdx >= 0 && queue[0] === lastClipIdx) {
-      var si = 1 + Math.floor(Math.random() * (queue.length - 1));
-      var tmp = queue[0]; queue[0] = queue[si]; queue[si] = tmp;
+  function buildShuffle(last) {
+    var order = [];
+    for (var i = 0; i < CLIPS.length; i++) order.push(i);
+    shuffleArray(order);
+    if (last >= 0 && order[0] === last) {
+      var swapIdx = 1 + Math.floor(Math.random() * (order.length - 1));
+      var tmp = order[0]; order[0] = order[swapIdx]; order[swapIdx] = tmp;
     }
+    return order;
   }
 
   function nextClipIdx() {
-    if (queue.length === 0) refillQueue();
-    var idx = queue.shift();
-    lastClipIdx = idx;
-    return idx;
+    if (shufflePos >= shuffleOrder.length) {
+      var last = shuffleOrder.length > 0 ? shuffleOrder[shuffleOrder.length - 1] : -1;
+      shuffleOrder = buildShuffle(last);
+      shufflePos = 0;
+    }
+    return shuffleOrder[shufflePos++];
   }
 
   function updateVideoPtr() {
