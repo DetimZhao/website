@@ -1,4 +1,4 @@
-# [detimzhao.github.io/website/](https://detimzhao.github.io/website/)
+# [detimzhao.com](https://detimzhao.com)
 
 Personal site. Vanilla HTML, CSS, JS.
 
