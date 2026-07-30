@@ -103,7 +103,7 @@
   var statuses = [
     "Currently: exploring what's next",
     "Based in: AZ, USA",
-    "Say hi: detimzhao[at]gmail.com"
+    "Say hi: detimzhao@gmail.com"
   ];
 
   var taglineIdx = 0;
