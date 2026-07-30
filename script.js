@@ -131,6 +131,9 @@
   var crossfadeInEl = null;
 
   var elemSt = {};
+
+  // ── Video clip management ──
+
   function getSt(el) {
     if (!elemSt[el.id]) {
       elemSt[el.id] = {
@@ -317,6 +320,8 @@
       advanceClip();
     });
   }
+
+  // ── WebGL pipeline ──
 
   // =========================================================================
   // WEBGL INIT
@@ -691,7 +696,7 @@
     gl.uniform2f(locs['uCanvasSize'], canvasAscii.width, canvasAscii.height);
   }
 
-  // ---- Glow ----
+  // ── Glow ──
 
   function stampGlow() {
     if (!showAscii) return;
@@ -868,6 +873,8 @@
     startRenderLoop();
   }
 
+  // ── 2D canvas & text rotation ──
+
   // =========================================================================
   // BINARY RAIN (Canvas 2D fallback)
   // =========================================================================
@@ -972,6 +979,21 @@
   }
 
   // =========================================================================
+  // STATUS ROTATION
+  // =========================================================================
+
+  function rotateStatus() {
+    statusText.classList.add('fading');
+    setTimeout(function () {
+      statusIdx = (statusIdx + 1) % statuses.length;
+      statusText.textContent = statuses[statusIdx];
+      statusText.classList.remove('fading');
+    }, 600);
+  }
+
+  // ── UI: bio / playback / settings / pointer ──
+
+  // =========================================================================
   // BIO TOGGLE
   // =========================================================================
 
@@ -994,19 +1016,6 @@
     e.stopPropagation();
     if (bioOpen) { closeBio(); }
     else { openBio(); }
-  }
-
-  // =========================================================================
-  // STATUS ROTATION
-  // =========================================================================
-
-  function rotateStatus() {
-    statusText.classList.add('fading');
-    setTimeout(function () {
-      statusIdx = (statusIdx + 1) % statuses.length;
-      statusText.textContent = statuses[statusIdx];
-      statusText.classList.remove('fading');
-    }, 600);
   }
 
   // =========================================================================
@@ -1220,6 +1229,8 @@
     targetY = -500;
     spotlight.classList.remove('active');
   }
+
+  // ── Boot & event wiring ──
 
   function fadeIn() {
     var els = document.querySelectorAll('.hero, .socials, footer, .status-line');
