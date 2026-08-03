@@ -27,6 +27,7 @@ A local server is needed. Opening `index.html` directly can break video loading.
 | `Detim_Zhao_Resume.pdf` | Resume |
 | `favicon.svg` | DZ monogram |
 | `apple-touch-icon.svg` / `.png` | iOS home screen icon |
+| `.well-known/security.txt` | Vulnerability disclosure contact |
 
 ## Features
 
