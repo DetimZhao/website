@@ -52,4 +52,9 @@ Temporary Items
 
 ### Project Specific ###
 # Video encoding backups
-/IMG_0783_720p_*.mp4
+/IMG_*.mp4
+
+# opencode and agent tooling
+opencode.json
+AGENTS.md
+.playwright-mcp/
