@@ -17,7 +17,7 @@ jobs:
       - name: Download latest resume
         run: |
           curl -fL -o resume-new.pdf \
-            https://github.com/DetimZhao/resume-latex/releases/latest/download/Detim_Zhao_Resume.pdf
+            https://github.com/DetimZhao/resume/releases/latest/download/Detim_Zhao_Resume.pdf
 
       - name: Check for changes
         id: check
@@ -38,3 +38,10 @@ jobs:
           git add Detim_Zhao_Resume.pdf
           git commit -m "Update resume PDF"
           git push
+
+      - name: Trigger deploy
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run static.yml --ref main
