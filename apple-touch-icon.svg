@@ -4,9 +4,9 @@
   <defs>
     <mask id="carve">
       <rect width="32" height="32" fill="white"/>
-      <path d="M9.5 9.5 H21.5 L9.5 21 H21.5" fill="none" stroke="black" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter"/>
+      <path d="M11 9.5 H23 L11 21 H23" fill="none" stroke="black" stroke-width="4" stroke-linecap="butt" stroke-linejoin="miter"/>
     </mask>
   </defs>
   <rect width="32" height="32" fill="#0a0a0a"/>
-  <path d="M4 5 H9 C19 5 25 10 25 16 C25 22 19 27 9 27 H4 Z" fill="#ebebeb" mask="url(#carve)"/>
+  <path d="M5.5 5 H10.5 C20.5 5 26.5 10 26.5 16 C26.5 22 20.5 27 10.5 27 H5.5 Z" fill="#ebebeb" mask="url(#carve)"/>
 </svg>
