@@ -17,6 +17,7 @@ body {
   background: #0a0a0a;
   color: #ebebeb;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -82,9 +83,14 @@ main {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem;
   text-align: center;
 }
+
+/* iOS Safari: 100vh includes the area behind the collapsing URL bar, so the
+   footer/status sit below the visible fold. 100dvh tracks the visible
+   viewport; the 100vh line is the fallback for browsers without dvh. */
 
 .hero {
   opacity: 0;
@@ -338,8 +344,8 @@ footer p {
   bottom: 1.5rem;
   right: 1.5rem;
   z-index: 10;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 1px solid rgba(235, 235, 235, 0.18);
   border-radius: 50%;
   background: rgba(15, 15, 15, 0.5);
@@ -385,8 +391,8 @@ footer p {
   bottom: 1.5rem;
   right: 4.75rem;
   z-index: 10;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 1px solid rgba(235, 235, 235, 0.18);
   border-radius: 50%;
   background: rgba(15, 15, 15, 0.5);
@@ -618,15 +624,15 @@ footer p {
   .video-playpause {
     bottom: 1rem;
     right: 1rem;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
   }
 
   .settings-toggle {
     bottom: 1rem;
-    right: 3.75rem;
-    width: 36px;
-    height: 36px;
+    right: 4.25rem;
+    width: 44px;
+    height: 44px;
   }
 
   .settings-panel {
@@ -646,10 +652,11 @@ footer p {
     justify-content: flex-start;
     padding: 0.75rem;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   h1 {
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-size: clamp(1.25rem, 3.5vw, 2.25rem);
   }
 
   .tagline {
@@ -661,7 +668,7 @@ footer p {
   }
 
   .socials {
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
     gap: 1.25rem;
   }
 
@@ -670,7 +677,7 @@ footer p {
   }
 
   .video-controls {
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
   }
 
   .status-line {
@@ -684,15 +691,15 @@ footer p {
   .video-playpause {
     bottom: 0.5rem;
     right: 0.5rem;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
   }
 
   .settings-toggle {
     bottom: 0.5rem;
-    right: 2.75rem;
-    width: 32px;
-    height: 32px;
+    right: 3.25rem;
+    width: 44px;
+    height: 44px;
   }
 
   .settings-panel {
@@ -711,4 +718,28 @@ footer p {
     left: 0.5rem;
     font-size: 0.6rem;
   }
+}
+
+/* ── Focus visibility (keyboard) ── */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgba(235, 235, 235, 0.85);
+  outline-offset: 3px;
+}
+
+.video-playpause:focus-visible,
+.settings-toggle:focus-visible {
+  outline-offset: 2px;
+}
+
+.social-link:focus-visible {
+  outline-offset: 4px;
+}
+
+.tagline:focus-visible {
+  outline-offset: 6px;
+  border-radius: 2px;
 }

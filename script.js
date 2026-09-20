@@ -1001,6 +1001,7 @@
     bioOpen = true;
     bioPanel.classList.add('open');
     taglineEl.classList.add('bio-open');
+    taglineEl.setAttribute('aria-expanded', 'true');
     taglinePaused = true;
     taglineEl.style.opacity = '1';
   }
@@ -1009,6 +1010,7 @@
     bioOpen = false;
     bioPanel.classList.remove('open');
     taglineEl.classList.remove('bio-open');
+    taglineEl.setAttribute('aria-expanded', 'false');
     taglinePaused = false;
   }
 
@@ -1331,6 +1333,13 @@
     setInterval(rotateStatus, 10000);
     setTimeout(fadeIn, 200);
 
+    // Touch-first devices have no hover affordance to signal the tagline is
+    // tappable, so auto-open the bio once after the intro (it sits right
+    // under "I'm just a guy"). Tapping anywhere closes it; rotation resumes.
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
+      setTimeout(openBio, 1600);
+    }
+
     if (video.readyState >= 2) {
       videoW = video.videoWidth;
       videoH = video.videoHeight;
@@ -1340,6 +1349,12 @@
   }
 
   taglineEl.addEventListener('click', toggleBio);
+  taglineEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleBio(e);
+    }
+  });
   document.addEventListener('click', function (e) {
     if (bioOpen && !taglineEl.contains(e.target) && !bioPanel.contains(e.target)) {
       closeBio();
