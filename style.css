@@ -270,6 +270,52 @@ footer p {
   color: rgba(235, 235, 235, 0.3);
 }
 
+/* ── Lab comlink (cross-link to detimzhao.dev) ── */
+
+.comlink {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: 0.35rem;
+  row-gap: 0.2rem;
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(235, 235, 235, 0.45);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1.2s ease 0.9s, transform 1.2s ease 0.9s, color 0.3s ease;
+}
+
+.comlink.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.comlink .arr.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: 500;
+  font-size: 1.5em;
+  line-height: 1;
+  vertical-align: -0.2em;
+  color: rgba(235, 235, 235, 0.6);
+}
+
+.comlink .note .slash {
+  color: rgba(235, 235, 235, 0.55);
+}
+
+.comlink:hover,
+.comlink:focus-visible {
+  color: rgba(235, 235, 235, 0.9);
+}
+
+.comlink:hover .arr {
+  color: #ebebeb;
+}
+
 /* ── Video controls ── */
 
 .video-controls {
@@ -599,6 +645,11 @@ footer p {
 @media (max-width: 600px) {
   main {
     padding: 1.5rem;
+  }
+
+  .comlink .items {
+    flex-basis: 100%;
+    text-align: center;
   }
 
   .socials {

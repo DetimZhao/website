@@ -1235,7 +1235,7 @@
   // ── Boot & event wiring ──
 
   function fadeIn() {
-    var els = document.querySelectorAll('.hero, .socials, footer, .status-line');
+    var els = document.querySelectorAll('.hero, .socials, footer, .status-line, .comlink');
     for (var i = 0; i < els.length; i++) {
       els[i].classList.add('visible');
     }
@@ -1333,12 +1333,11 @@
     setInterval(rotateStatus, 10000);
     setTimeout(fadeIn, 200);
 
-    // Touch-first devices have no hover affordance to signal the tagline is
-    // tappable, so auto-open the bio once after the intro (it sits right
-    // under "I'm just a guy"). Tapping anywhere closes it; rotation resumes.
-    if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
-      setTimeout(openBio, 1600);
-    }
+    // Auto-open the bio once after the intro on every device: on touch there
+    // is no hover affordance to signal the tagline is tappable, and on
+    // desktop Quantum chose to show the bio by default too. Tapping the
+    // tagline or anywhere else closes it; rotation resumes.
+    setTimeout(openBio, 1600);
 
     if (video.readyState >= 2) {
       videoW = video.videoWidth;
