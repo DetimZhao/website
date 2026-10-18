@@ -169,9 +169,9 @@
   function playActiveSlot() {
     var s = slots[activeSlotIdx];
     var el = (currentDirection === 'fwd') ? s.fwd : s.rev;
-    el.play().catch(function () {});
+    attemptPlay(el);
     if (crossfading && crossfadeInEl) {
-      crossfadeInEl.play().catch(function () {});
+      attemptPlay(crossfadeInEl);
     }
   }
 
@@ -201,7 +201,7 @@
     st.lastPF = -1;
     st.lastVT = 0;
     lastFrameTime = 0;
-    newEl.play().catch(function () {});
+    attemptPlay(newEl);
     if (oldEl && oldEl !== newEl && oldEl.readyState >= 1) {
       oldEl.currentTime = 0;
     }
@@ -222,7 +222,7 @@
     st.alloc = false;
     st.lastPF = -1;
     inEl.currentTime = 0;
-    inEl.play().catch(function () {});
+    attemptPlay(inEl);
     renderToken++;
     startRenderLoop();
   }
@@ -265,7 +265,7 @@
       updateVideoPtr();
       videoReady = true;
       renderToken++;
-      video.play().catch(function () {});
+      attemptPlay(video);
       if (showAscii && webglReady) startRenderLoop();
     }
   }
@@ -283,7 +283,7 @@
       updateVideoPtr();
       videoReady = true;
       renderToken++;
-      video.play().catch(function () {});
+      attemptPlay(video);
       if (showAscii && webglReady) startRenderLoop();
     }
   }
@@ -299,8 +299,7 @@
         videoH = st.vh;
         videoReady = true;
         if (videoPlaying && !videoDisabled) {
-          slot.fwd.play().catch(function () {});
-          if (webglReady) activateAscii();
+          ensureVideoRunning();
         }
       }
     });
@@ -319,6 +318,8 @@
       if (slotIdx !== activeSlotIdx || currentDirection !== 'rev') return;
       advanceClip();
     });
+    wireMediaState(slot.fwd);
+    wireMediaState(slot.rev);
   }
 
   // ── WebGL pipeline ──
@@ -1033,33 +1034,97 @@
     localStorage.setItem('video-playing', '0');
   }
 
+  // ── Playback resilience ──
+  // The browser can refuse the automatic play(): iOS blocks it without a user
+  // gesture (background/low-power), and it also pauses media when the page is
+  // hidden or the app is backgrounded. Every play() used to be
+  // `.catch(function () {})`, so a refusal left the background frozen with the
+  // button still claiming "playing" — and the first tap then PAUSED it, so it
+  // took two taps to recover. Everything now routes through ensureVideoRunning():
+  // idempotent, and re-armed on the events that can unblock playback.
+
+  function syncPlayButton() {
+    if (!video || videoDisabled) return;
+    // No data yet: don't flip the icon during the first frames of loading
+    // (readyState 0 means load() hasn't produced anything to report on).
+    if (video.readyState < 1) return;
+    if (video.paused) {
+      videoPlayPauseBtn.classList.remove('playing');
+    } else {
+      videoPlayPauseBtn.classList.add('playing');
+    }
+  }
+
+  // play() on the active element, keeping the button honest and retrying later
+  // instead of swallowing a refusal.
+  function attemptPlay(el) {
+    var p = el.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(function () {
+        if (el === video) syncPlayButton();
+      });
+    }
+  }
+
+  function ensureVideoRunning() {
+    if (!video || videoDisabled || !videoPlaying || !videoReady) return;
+    if (!video.paused) {
+      if (webglReady && !showAscii) activateAscii();
+      return;
+    }
+    if (video.ended) return;
+    var p = video.play();
+    if (p && typeof p.then === 'function') {
+      p.then(function () {
+        if (videoDisabled || !videoPlaying) return;
+        syncPlayButton();
+        if (webglReady && !showAscii) activateAscii();
+      }).catch(function () {
+        // still blocked (no gesture yet, or interrupted) — don't pretend it plays
+        syncPlayButton();
+      });
+    }
+  }
+
+  function wireMediaState(el) {
+    el.addEventListener('play', function () {
+      if (el === video) syncPlayButton();
+    });
+    el.addEventListener('playing', function () {
+      if (el !== video) return;
+      syncPlayButton();
+      if (videoPlaying && !videoDisabled && webglReady && !showAscii) activateAscii();
+    });
+    el.addEventListener('pause', function () {
+      if (el !== video) return;
+      syncPlayButton();
+      // A pause we did not ask for (autoplay block, iOS interruption, page
+      // backgrounded) — try again shortly. A user pause sets videoPlaying false
+      // first, so it is skipped; a finished clip hands off to the boomerang.
+      if (videoPlaying && !videoDisabled && !el.ended) setTimeout(ensureVideoRunning, 400);
+    });
+  }
+
   function playVideoFn() {
     videoPlaying = true;
     videoPlayPauseBtn.classList.add('playing');
     localStorage.setItem('video-playing', '1');
 
     if (!videoReady) {
+      // data not in yet — the loadeddata handler runs ensureVideoRunning()
       video.load();
       return;
     }
 
-    var promise = video.play();
-    if (promise !== undefined) {
-      promise.then(function () {
-        if (!videoPlaying || videoDisabled) return;
-        if (webglReady && !showAscii) activateAscii();
-      }).catch(function () {
-        if (!videoPlaying || videoDisabled) return;
-        if (webglReady && !showAscii) activateAscii();
-      });
-    } else {
-      if (webglReady && !showAscii) activateAscii();
-    }
+    ensureVideoRunning();
   }
 
   function togglePlayPause() {
     if (videoDisabled) return;
-    if (videoPlaying) {
+    // Decide from the element, not from intent: after a refused autoplay the
+    // intent still says "playing", so an intent-based toggle would PAUSE (and do
+    // nothing visible) on the first tap.
+    if (video && !video.paused) {
       pauseVideo();
     } else {
       playVideoFn();
@@ -1343,8 +1408,9 @@
       videoW = video.videoWidth;
       videoH = video.videoHeight;
       videoReady = true;
-      if (webglReady && !videoDisabled && videoPlaying) activateAscii();
+      ensureVideoRunning();
     }
+    syncPlayButton();
   }
 
   taglineEl.addEventListener('click', toggleBio);
@@ -1413,6 +1479,21 @@
       setSliderFromPointer(slider, e.clientX);
     });
   });
+
+  // ── Playback retry triggers ──
+  // Mobile browsers refuse automatic play() without a gesture, and pause media
+  // when the page is hidden/backgrounded without ever resuming it. Re-attempt on
+  // the events that can unblock playback.
+  ['pointerdown', 'touchstart', 'keydown'].forEach(function (evt) {
+    document.addEventListener(evt, function () {
+      if (video && videoPlaying && !videoDisabled && video.paused) ensureVideoRunning();
+    }, { capture: true, passive: true });
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) ensureVideoRunning();
+  });
+  window.addEventListener('pageshow', function () { ensureVideoRunning(); });
+  window.addEventListener('focus', function () { ensureVideoRunning(); });
   settingsToggle.addEventListener('click', function (e) {
     e.stopPropagation();
     toggleSettings();
