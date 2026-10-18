@@ -1386,6 +1386,33 @@
   glyphOpacitySlider.addEventListener('input', function () {
     applyGlyphOpacity(parseInt(glyphOpacitySlider.value, 10));
   });
+
+  // ── Sliders: tap-to-set anywhere in the (enlarged) hit box ──
+  // iOS Safari ignores taps on a range track — it only drags the thumb — so the
+  // padded hit box would otherwise do nothing there. Setting the value from the
+  // pointer x makes a tap behave the same on every platform; a real drag still
+  // falls through to the native drag after this.
+  function setSliderFromPointer(slider, clientX) {
+    var rect = slider.getBoundingClientRect();
+    var thumb = parseFloat(getComputedStyle(slider).getPropertyValue('--thumb')) || 14;
+    var usable = rect.width - thumb;
+    if (usable <= 0) return;
+    var min = parseFloat(slider.min), max = parseFloat(slider.max);
+    var step = parseFloat(slider.step) || 1;
+    var frac = Math.max(0, Math.min(1, (clientX - rect.left - thumb / 2) / usable));
+    var v = Math.round((min + frac * (max - min)) / step) * step;
+    v = Math.max(min, Math.min(max, v));
+    if (String(v) !== slider.value) {
+      slider.value = v;
+      slider.dispatchEvent(new Event('input'));
+    }
+  }
+
+  [videoOpacitySlider, cellSizeSlider, tileOpacitySlider, glyphOpacitySlider].forEach(function (slider) {
+    slider.addEventListener('pointerdown', function (e) {
+      setSliderFromPointer(slider, e.clientX);
+    });
+  });
   settingsToggle.addEventListener('click', function (e) {
     e.stopPropagation();
     toggleSettings();

@@ -343,12 +343,20 @@ footer p {
 .video-opacity-slider {
   -webkit-appearance: none;
   appearance: none;
+  /* 3px visual track, ~43px invisible touch target: padding grows the hit box,
+     the negative margin cancels the layout shift. box-sizing must stay
+     content-box or the padding eats the track (global reset sets border-box). */
+  box-sizing: content-box;
+  --thumb: 14px;
   width: 80px;
   height: 3px;
-  background: rgba(235, 235, 235, 0.45);
+  padding: 20px 0;
+  margin: -20px 0;
+  background: transparent;
   border-radius: 2px;
   cursor: pointer;
   outline: none;
+  touch-action: none;
 }
 
 .video-opacity-slider::-webkit-slider-runnable-track {
@@ -360,11 +368,11 @@ footer p {
 .video-opacity-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: var(--thumb);
+  height: var(--thumb);
   border-radius: 50%;
   background: rgba(235, 235, 235, 0.9);
-  margin-top: -5px;
+  margin-top: calc((3px - var(--thumb)) / 2);
   cursor: pointer;
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
@@ -374,9 +382,15 @@ footer p {
   box-shadow: 0 0 10px rgba(235, 235, 235, 0.3);
 }
 
+.video-opacity-slider::-moz-range-track {
+  height: 3px;
+  background: rgba(235, 235, 235, 0.45);
+  border-radius: 2px;
+}
+
 .video-opacity-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: var(--thumb);
+  height: var(--thumb);
   border: none;
   border-radius: 50%;
   background: rgba(235, 235, 235, 0.9);
@@ -525,12 +539,19 @@ footer p {
 .settings-slider {
   -webkit-appearance: none;
   appearance: none;
+  /* same touch-target treatment as the video slider (3px visual track,
+     ~43px hit box, no layout shift) */
+  box-sizing: content-box;
+  --thumb: 13px;
   width: 56px;
   height: 3px;
-  background: rgba(235, 235, 235, 0.25);
+  padding: 20px 0;
+  margin: -20px 0;
+  background: transparent;
   border-radius: 2px;
   cursor: pointer;
   outline: none;
+  touch-action: none;
 }
 
 .settings-slider::-webkit-slider-runnable-track {
@@ -542,11 +563,11 @@ footer p {
 .settings-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 13px;
-  height: 13px;
+  width: var(--thumb);
+  height: var(--thumb);
   border-radius: 50%;
   background: rgba(235, 235, 235, 0.9);
-  margin-top: -5px;
+  margin-top: calc((3px - var(--thumb)) / 2);
   cursor: pointer;
   transition: background 0.2s ease, box-shadow 0.2s ease;
 }
@@ -556,9 +577,15 @@ footer p {
   box-shadow: 0 0 10px rgba(235, 235, 235, 0.3);
 }
 
+.settings-slider::-moz-range-track {
+  height: 3px;
+  background: rgba(235, 235, 235, 0.25);
+  border-radius: 2px;
+}
+
 .settings-slider::-moz-range-thumb {
-  width: 13px;
-  height: 13px;
+  width: var(--thumb);
+  height: var(--thumb);
   border: none;
   border-radius: 50%;
   background: rgba(235, 235, 235, 0.9);
